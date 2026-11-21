@@ -278,6 +278,7 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
     <div class="stats" style="padding:12px 0 4px;">
       <div class="stat"><div class="n" id="rep-sessions">0</div><div class="l">جلسة الشهر ده</div></div>
       <div class="stat"><div class="n" id="rep-clients">0</div><div class="l">عميل حضر</div></div>
+      <div class="stat"><div class="n" id="rep-new">0</div><div class="l">كشف جديد</div></div>
     </div>
     <div class="section-title" style="padding-top:10px;">تفصيلة لكل عميل</div>
     <div id="rep-rows"></div>
@@ -635,6 +636,9 @@ function renderReport(){
   $("rep-total").textContent = fmtMoney(total);
   $("rep-sessions").textContent = sess.length;
   $("rep-clients").textContent = new Set(sess.map(s=>s.patientId)).size;
+  const firstSess={};
+  for(const s of sessions){ const k=String(s.patientId); if(!(k in firstSess)||String(s.date)<firstSess[k]) firstSess[k]=String(s.date); }
+  $("rep-new").textContent = Object.values(firstSess).filter(inMonth).length;
   const byId={};
   for(const s of sess){ (byId[s.patientId]=byId[s.patientId]||{s:0,p:0}).s++; }
   for(const x of pays){ (byId[x.patientId]=byId[x.patientId]||{s:0,p:0}).p+=Number(x.amount)||0; }
