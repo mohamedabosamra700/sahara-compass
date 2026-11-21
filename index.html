@@ -196,6 +196,14 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
 .rep-row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:10px;padding:11px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(20,30,40,.07);font-size:14px;}
 .rep-row .v{font-weight:800;color:var(--green);}
 .rep-note{font-size:12px;color:var(--muted);text-align:center;padding:6px 0 18px;}
+.rep-exp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.rep-exp-total{font-size:24px;font-weight:800;color:#dc2626;}
+#rep-net{color:var(--green);}
+#rep-net.neg{color:#dc2626;}
+.rep-row .v.red{color:#dc2626;}
+.xdel{background:none;border:none;color:#dc2626;font-size:15px;cursor:pointer;font-family:inherit;padding:0;margin-right:8px;}
+.row2{display:flex;gap:10px;}
+.row2>*{flex:1;}
 </style>
 </head>
 <body>
@@ -279,6 +287,44 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       <div class="stat"><div class="n" id="rep-sessions">0</div><div class="l">جلسة الشهر ده</div></div>
       <div class="stat"><div class="n" id="rep-clients">0</div><div class="l">عميل حضر</div></div>
       <div class="stat"><div class="n" id="rep-new">0</div><div class="l">كشف جديد</div></div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="rep-exp-head">
+        <div>
+          <div class="rep-big-label">مصروفات الشهر</div>
+          <div class="rep-exp-total" id="rep-exp-total">0 ج</div>
+        </div>
+        <div style="text-align:left;">
+          <div class="rep-big-label">صافي الشهر</div>
+          <div class="rep-exp-total" id="rep-net">0 ج</div>
+        </div>
+      </div>
+      <div id="rep-exp-rows"></div>
+      <div class="empty hidden" id="rep-exp-empty" style="padding:8px 0;">مفيش مصروفات مسجلة في الشهر ده</div>
+      <button class="btn secondary" id="btn-add-expense">＋ سجّل مصروف</button>
+      <div id="exp-form" class="hidden" style="margin-top:10px;">
+        <label class="fld">البند
+          <select id="exp-cat">
+            <option>إيجار</option>
+            <option>سكرتيرة</option>
+            <option>ضرائب</option>
+            <option>أخرى</option>
+          </select>
+        </label>
+        <label class="fld">تفاصيل (اختياري)
+          <input id="exp-note" type="text" placeholder="مثال: مستلزمات عيادة">
+        </label>
+        <div class="row2">
+          <label class="fld">المبلغ
+            <input id="exp-amount" type="number" inputmode="decimal" min="0" placeholder="0">
+          </label>
+          <label class="fld">التاريخ
+            <input id="exp-date" type="date">
+          </label>
+        </div>
+        <button class="btn" id="btn-save-expense">حفظ المصروف</button>
+        <button class="btn gray" id="btn-cancel-expense">إلغاء</button>
+      </div>
     </div>
     <div class="section-title" style="padding-top:10px;">تفصيلة لكل عميل</div>
     <div id="rep-rows"></div>
@@ -518,13 +564,14 @@ function normalizeWaPhone(p){
 let db;
 function dbOpen(){
   return new Promise((res,rej)=>{
-    const rq = indexedDB.open("nile-center",1);
+    const rq = indexedDB.open("nile-center",2);
     rq.onupgradeneeded = e=>{
       const d = e.target.result;
-      d.createObjectStore("patients",{keyPath:"id",autoIncrement:true});
-      const s = d.createObjectStore("sessions",{keyPath:"id",autoIncrement:true}); s.createIndex("patientId","patientId");
-      const p = d.createObjectStore("payments",{keyPath:"id",autoIncrement:true}); p.createIndex("patientId","patientId");
-      const x = d.createObjectStore("xrays",{keyPath:"id",autoIncrement:true}); x.createIndex("patientId","patientId");
+      if(!d.objectStoreNames.contains("patients")) d.createObjectStore("patients",{keyPath:"id",autoIncrement:true});
+      if(!d.objectStoreNames.contains("sessions")){ const s = d.createObjectStore("sessions",{keyPath:"id",autoIncrement:true}); s.createIndex("patientId","patientId"); }
+      if(!d.objectStoreNames.contains("payments")){ const p = d.createObjectStore("payments",{keyPath:"id",autoIncrement:true}); p.createIndex("patientId","patientId"); }
+      if(!d.objectStoreNames.contains("xrays")){ const x = d.createObjectStore("xrays",{keyPath:"id",autoIncrement:true}); x.createIndex("patientId","patientId"); }
+      if(!d.objectStoreNames.contains("expenses")) d.createObjectStore("expenses",{keyPath:"id",autoIncrement:true});
     };
     rq.onsuccess = e=>{ db=e.target.result; res(db); };
     rq.onerror = e=>rej(e.target.error);
@@ -651,6 +698,30 @@ function renderReport(){
   $("rep-empty").classList.toggle("hidden", rows.length>0);
   const now=new Date();
   $("rep-next").disabled = (y===now.getFullYear() && m===now.getMonth()) || (y>now.getFullYear()) || (y===now.getFullYear() && m>now.getMonth());
+  const exps = expenses.filter(x=>inMonth(x.date)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.id-a.id);
+  const expTotal = exps.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  $("rep-exp-total").textContent = fmtMoney(expTotal);
+  const net = total - expTotal;
+  const ne=$("rep-net"); ne.textContent = fmtMoney(net); ne.classList.toggle("neg", net<0);
+  $("rep-exp-rows").innerHTML = exps.map(x=>
+    `<div class="rep-row"><span>${esc(x.cat||"أخرى")}${x.note?" — "+esc(x.note):""} <span class="muted" style="font-size:12px;">${esc(fmtDate(x.date))}</span></span><span class="v red">${fmtMoney(x.amount)}<button class="xdel" data-exp="${x.id}">✕</button></span></div>`).join("");
+  $("rep-exp-empty").classList.toggle("hidden", exps.length>0);
+  $("rep-exp-rows").querySelectorAll(".xdel").forEach(b=>b.addEventListener("click",()=>delExpense(Number(b.dataset.exp))));
+}
+
+/* ---------- Expenses ---------- */
+async function saveExpense(){
+  const amt=Number($("exp-amount").value);
+  if(!amt||amt<=0){ alert("اكتب مبلغ صحيح"); return; }
+  await dbAdd("expenses",{cat:$("exp-cat").value,note:$("exp-note").value.trim(),amount:amt,date:$("exp-date").value||todayStr(),createdAt:new Date().toISOString()});
+  $("exp-amount").value=""; $("exp-note").value="";
+  $("exp-form").classList.add("hidden");
+  await reloadAll(); renderReport();
+}
+async function delExpense(id){
+  if(!confirm("تمسح المصروف ده؟")) return;
+  await dbDel("expenses",id);
+  await reloadAll(); renderReport();
 }
 
 /* ---------- Navigation ---------- */
@@ -689,7 +760,7 @@ function enterApp(){
 }
 
 /* ---------- State ---------- */
-let patients=[], sessions=[], payments=[], xrays=[];
+let patients=[], sessions=[], payments=[], xrays=[], expenses=[];
 let currentPatientId=null, editingPatientId=null;
 
 async function reloadAll(){
@@ -697,6 +768,7 @@ async function reloadAll(){
   sessions = await dbAll("sessions");
   payments = await dbAll("payments");
   xrays    = await dbAll("xrays");
+  expenses = await dbAll("expenses");
 }
 const patientSessions = pid => sessions.filter(s=>s.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
 const patientPayments = pid => payments.filter(p=>p.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id);
@@ -980,7 +1052,7 @@ function base64ToBlob(b64){
 async function buildBackupObj(){
   return {
     app:"nile-center", version:1, exportedAt:new Date().toISOString(),
-    patients, sessions, payments,
+    patients, sessions, payments, expenses,
     xrays: await Promise.all(xrays.map(async x=>({id:x.id,patientId:x.patientId,ts:x.ts,data:await blobToBase64(x.blob)})))
   };
 }
@@ -1052,10 +1124,11 @@ async function importEncryptedGo(){
 async function restoreBackupObj(obj){
   if(!obj||obj.app!=="nile-center"||!Array.isArray(obj.patients)){ alert("الملف ده مش نسخة احتياطية صالحة"); return; }
   if(!confirm("الاسترجاع هيستبدل كل البيانات الحالية بالنسخة دي. متأكد؟")) return;
-  for(const st of ["patients","sessions","payments","xrays"]) await dbClear(st);
+  for(const st of ["patients","sessions","payments","xrays","expenses"]) await dbClear(st);
   for(const p of obj.patients) await dbAdd("patients",p);
   for(const s of (obj.sessions||[])) await dbAdd("sessions",s);
   for(const x of (obj.payments||[])) await dbAdd("payments",x);
+  for(const x of (obj.expenses||[])) await dbAdd("expenses",x);
   for(const x of (obj.xrays||[])) await dbAdd("xrays",{patientId:x.patientId,ts:x.ts,blob:base64ToBlob(x.data)});
   await reloadAll();
   alert("تمام ✅ البيانات اترجعت");
@@ -1064,7 +1137,7 @@ async function restoreBackupObj(obj){
 
 /* ---------- Wipe / forgot PIN ---------- */
 async function wipeAll(){
-  for(const st of ["patients","sessions","payments","xrays"]) await dbClear(st);
+  for(const st of ["patients","sessions","payments","xrays","expenses"]) await dbClear(st);
   localStorage.removeItem(PIN_KEY);
   await reloadAll();
   showLock("setup1");
@@ -1095,6 +1168,9 @@ function init(){
   $("btn-report").addEventListener("click",()=>{ reportMonth=new Date(); reportMonth.setDate(1); show("report"); renderReport(); });
   $("rep-prev").addEventListener("click",()=>{ reportMonth.setMonth(reportMonth.getMonth()-1); renderReport(); });
   $("rep-next").addEventListener("click",()=>{ if(!$("rep-next").disabled){ reportMonth.setMonth(reportMonth.getMonth()+1); renderReport(); } });
+  $("btn-add-expense").addEventListener("click",()=>{ $("exp-form").classList.toggle("hidden"); if(!$("exp-date").value) $("exp-date").value=todayStr(); });
+  $("btn-save-expense").addEventListener("click",saveExpense);
+  $("btn-cancel-expense").addEventListener("click",()=>$("exp-form").classList.add("hidden"));
   $("btn-new-patient").addEventListener("click",()=>openEditPatient(null));
   $("btn-new-patient2").addEventListener("click",()=>openEditPatient(null));
   $("search2").addEventListener("input",renderPatients);
