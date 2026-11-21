@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0e9488">
+<title>مركز النيل - سجل العملاء</title>
+<style>
+:root{
+  --teal:#0e9488; --teal-dark:#0b7a70; --teal-light:#e0f5f3;
+  --bg:#f3f5f7; --card:#ffffff; --ink:#1c2430; --muted:#6b7684;
+  --green:#16a34a; --green-bg:#e7f7ec;
+  --amber:#b45309; --amber-bg:#fdf1e0;
+  --red:#dc2626; --red-bg:#fdeaea;
+  --gray-bg:#eef1f4;
+  --radius:16px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); font-size:16px; line-height:1.6;
+}
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;background:var(--bg);padding-bottom:40px;}
+.hidden{display:none !important;}
+
+/* ===== Top bar ===== */
+.topbar{
+  position:sticky;top:0;z-index:20;background:var(--teal);color:#fff;
+  padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
+.topbar .title{font-size:18px;font-weight:700;flex:1;text-align:center;}
+.topbar button{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:15px;cursor:pointer;font-family:inherit;}
+.topbar button:active{background:rgba(255,255,255,.32);}
+.topbar .spacer{width:44px;}
+
+/* ===== Generic ===== */
+.page{padding:16px;}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.card h3{margin:0 0 10px;font-size:16px;color:var(--teal-dark);}
+.btn{
+  display:block;width:100%;border:none;border-radius:14px;padding:14px;
+  font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;
+  background:var(--teal);color:#fff;margin-top:10px;text-decoration:none;
+}
+.btn:active{background:var(--teal-dark);}
+.btn.secondary{background:var(--teal-light);color:var(--teal-dark);}
+.btn.secondary:active{background:#c8ece8;}
+.btn.danger{background:var(--red-bg);color:var(--red);}
+.btn.gray{background:var(--gray-bg);color:var(--ink);}
+.btn.small{width:auto;display:inline-block;padding:8px 16px;font-size:14px;margin-top:0;}
+.btnrow{display:flex;gap:10px;}
+.btnrow .btn{margin-top:10px;}
+
+label.fld{display:block;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--muted);}
+label.fld input,label.fld select,label.fld textarea{
+  display:block;width:100%;margin-top:5px;padding:12px;border:1.5px solid #dde3e9;border-radius:12px;
+  font-size:16px;font-family:inherit;background:#fbfcfd;color:var(--ink);
+}
+label.fld textarea{min-height:80px;resize:vertical;}
+label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:none;border-color:var(--teal);}
+.hint{font-size:13px;color:var(--muted);margin-top:6px;}
+.muted{color:var(--muted);}
+.big{font-size:22px;font-weight:800;}
+.center{text-align:center;}
+
+/* ===== Lock screen ===== */
+#view-lock{background:linear-gradient(180deg,var(--teal) 0%,#0a6b62 100%);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.lockcard{background:#fff;border-radius:22px;padding:28px 22px;width:100%;max-width:340px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+.lockcard .logo{font-size:44px;}
+.lockcard h1{font-size:20px;margin:8px 0 2px;color:var(--teal-dark);}
+.lockcard p{font-size:14px;color:var(--muted);margin:4px 0 16px;}
+#pin-dots{display:flex;justify-content:center;gap:12px;margin:10px 0 18px;direction:ltr;}
+#pin-dots span{width:16px;height:16px;border-radius:50%;border:2px solid var(--teal);background:#fff;}
+#pin-dots span.on{background:var(--teal);}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;direction:ltr;}
+.pinpad button{
+  border:none;background:var(--gray-bg);border-radius:14px;padding:14px 0;font-size:22px;font-weight:700;
+  cursor:pointer;font-family:inherit;color:var(--ink);
+}
+.pinpad button:active{background:#dbe2e8;}
+#lock-error{color:var(--red);font-size:14px;min-height:20px;margin-top:8px;}
+#lock-forgot{background:none;border:none;color:var(--muted);font-size:13px;margin-top:14px;text-decoration:underline;cursor:pointer;font-family:inherit;}
+
+/* ===== Home ===== */
+.greet{padding:18px 16px 6px;}
+.greet .g1{font-size:20px;font-weight:800;}
+.greet .g2{font-size:14px;color:var(--muted);}
+.stats{display:flex;gap:10px;padding:10px 16px 4px;}
+.stat{flex:1;background:var(--card);border-radius:var(--radius);padding:12px 8px;text-align:center;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.stat .n{font-size:24px;font-weight:800;color:var(--teal);}
+.stat .l{font-size:12px;color:var(--muted);}
+.searchbox{padding:10px 16px;}
+.searchbox input{
+  width:100%;padding:13px 16px;border:1.5px solid #dde3e9;border-radius:14px;font-size:16px;
+  font-family:inherit;background:#fff;
+}
+.searchbox input:focus{outline:none;border-color:var(--teal);}
+.section-title{padding:14px 16px 6px;font-size:15px;font-weight:700;color:var(--muted);}
+
+.plist{list-style:none;margin:0;padding:0 16px;}
+.plist li{
+  background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(20,30,40,.06);cursor:pointer;
+}
+.plist li:active{background:#f0faf9;}
+.avatar{
+  width:46px;height:46px;border-radius:50%;background:var(--teal-light);color:var(--teal-dark);
+  display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0;
+}
+.pinfo{flex:1;min-width:0;}
+.pinfo .nm{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pinfo .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chip{
+  font-size:12px;font-weight:700;border-radius:20px;padding:4px 10px;flex-shrink:0;white-space:nowrap;
+}
+.chip.wait{background:var(--amber-bg);color:var(--amber);}
+.chip.done{background:var(--green-bg);color:var(--green);}
+.chip.late{background:var(--red-bg);color:var(--red);}
+.chip.gray{background:var(--gray-bg);color:var(--muted);}
+
+.empty{
+  text-align:center;color:var(--muted);padding:36px 24px;font-size:15px;
+}
+.empty .ic{font-size:40px;display:block;margin-bottom:8px;}
+
+/* ===== Patient file ===== */
+.phead{display:flex;align-items:center;gap:14px;}
+.phead .avatar{width:58px;height:58px;font-size:26px;}
+.phead .nm{font-size:20px;font-weight:800;}
+.phead .meta{font-size:14px;color:var(--muted);}
+.iconbtns{display:flex;gap:10px;margin-top:12px;}
+.iconbtns a,.iconbtns button{
+  flex:1;text-align:center;background:var(--gray-bg);border:none;border-radius:12px;padding:10px;
+  font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;text-decoration:none;font-family:inherit;
+}
+.iconbtns a:active,.iconbtns button:active{background:#dbe2e8;}
+.progress-wrap{background:var(--gray-bg);border-radius:10px;height:12px;overflow:hidden;margin:8px 0 4px;direction:ltr;}
+.progress-bar{height:100%;background:var(--teal);border-radius:10px;transition:width .3s;}
+.money-row{display:flex;justify-content:space-between;font-size:15px;padding:5px 0;}
+.money-row .v{font-weight:800;}
+.money-row .v.green{color:var(--green);}
+.money-row .v.red{color:var(--red);}
+
+.timeline{list-style:none;margin:0;padding:0;}
+.timeline li{
+  border-right:3px solid var(--teal-light);padding:4px 14px 14px 4px;margin-right:6px;position:relative;
+}
+.timeline li::before{
+  content:"";position:absolute;right:-8px;top:8px;width:11px;height:11px;border-radius:50%;
+  background:var(--teal);border:2px solid #fff;box-shadow:0 0 0 2px var(--teal-light);
+}
+.timeline .d{font-size:13px;font-weight:700;color:var(--teal-dark);}
+.timeline .w{font-size:15px;margin-top:2px;}
+.timeline .n{font-size:13px;color:var(--muted);margin-top:2px;}
+
+.xgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.xgrid .thumb{
+  aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--gray-bg);cursor:pointer;border:none;padding:0;
+}
+.xgrid .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.xviewer{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:60;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:16px;
+}
+.xviewer img{max-width:100%;max-height:76vh;border-radius:8px;}
+.xviewer .row{display:flex;gap:12px;margin-top:16px;}
+.xviewer button{border:none;border-radius:12px;padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+.xviewer .close{background:#fff;color:#111;}
+.xviewer .del{background:var(--red);color:#fff;}
+
+.notice{
+  background:#fff8e6;border:1.5px solid #f0d98a;border-radius:14px;padding:12px 14px;font-size:13.5px;
+  color:#7a5b00;margin-bottom:14px;
+}
+.fab{
+  position:fixed;bottom:calc(env(safe-area-inset-bottom, 0px) + 18px);left:50%;transform:translateX(-50%);
+  z-index:30;
+}
+.fab button{
+  background:var(--teal);color:#fff;border:none;border-radius:30px;padding:15px 28px;font-size:16px;
+  font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(14,148,136,.45);font-family:inherit;
+}
+.fab button:active{background:var(--teal-dark);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= LOCK ================= -->
+  <div id="view-lock" class="hidden">
+    <div class="lockcard">
+      <div class="logo">🩺</div>
+      <h1>مركز النيل</h1>
+      <p id="lock-sub">ادخل رقمك السري</p>
+      <div id="pin-dots"><span></span><span></span><span></span><span></span></div>
+      <div class="pinpad" id="pinpad"></div>
+      <div id="lock-error"></div>
+      <button id="lock-forgot" class="hidden">نسيت الرقم؟</button>
+      <button id="lock-cancel" class="hidden" style="display:block;margin:10px auto 0;background:none;border:none;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit;">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- ================= TOP BAR ================= -->
+  <div id="topbar" class="topbar hidden">
+    <button id="btn-back" class="hidden">رجوع →</button>
+    <div class="spacer hidden" id="topbar-spacer"></div>
+    <div class="title" id="topbar-title">مركز النيل</div>
+    <button id="btn-lock-now" title="اقفل">🔒</button>
+  </div>
+
+  <!-- ================= HOME ================= -->
+  <div id="view-home" class="hidden">
+    <div class="greet">
+      <div class="g1" id="greet1">صباح الخير يا دكتور 👋</div>
+      <div class="g2" id="greet2"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="st-today">0</div><div class="l">عملاء النهاردة</div></div>
+      <div class="stat"><div class="n" id="st-sessions">0</div><div class="l">جلسات خلصت النهاردة</div></div>
+      <div class="stat"><div class="n" id="st-total">0</div><div class="l">كل العملاء</div></div>
+    </div>
+    <div class="searchbox">
+      <input id="search" type="search" placeholder="🔍 ابحث بالاسم أو رقم التليفون">
+    </div>
+    <div id="home-search-results" class="hidden">
+      <div class="section-title">نتايج البحث</div>
+      <ul class="plist" id="search-list"></ul>
+    </div>
+    <div id="home-today-wrap">
+      <div class="section-title">قايمة النهاردة</div>
+      <ul class="plist" id="today-list"></ul>
+      <div class="empty hidden" id="today-empty"><span class="ic">☕</span>مفيش عملاء النهاردة لسه</div>
+    </div>
+    <div class="page">
+      <button class="btn secondary" id="btn-all-patients">📋 كل العملاء</button>
+      <button class="btn gray" id="btn-settings">⚙️ الإعدادات والنسخة الاحتياطية</button>
+    </div>
+    <div class="fab"><button id="btn-new-patient">＋ عميل جديد</button></div>
+  </div>
+
+  <!-- ================= ALL PATIENTS ================= -->
+  <div id="view-patients" class="hidden">
+    <div class="searchbox" style="padding-top:16px;">
+      <input id="search2" type="search" placeholder="🔍 ابحث بالاسم أو رقم التليفون">
+    </div>
+    <ul class="plist" id="patients-list"></ul>
+    <div class="empty hidden" id="patients-empty"><span class="ic">🗂️</span>لسه مفيش عملاء متسجلين.<br>دوس "＋ عميل جديد" وابدأ.</div>
+    <div class="fab"><button id="btn-new-patient2">＋ عميل جديد</button></div>
+  </div>
+
+  <!-- ================= ADD / EDIT PATIENT ================= -->
+  <div id="view-edit-patient" class="hidden page">
+    <div class="card">
+      <h3 id="edit-patient-title">عميل جديد</h3>
+      <label class="fld">الاسم *
+        <input id="f-name" type="text" placeholder="اسم العميل">
+      </label>
+      <label class="fld">رقم التليفون
+        <input id="f-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx">
+      </label>
+      <div class="btnrow" style="gap:10px;">
+        <label class="fld" style="flex:1;">السن
+          <input id="f-age" type="number" inputmode="numeric" min="0" max="120" placeholder="—">
+        </label>
+        <label class="fld" style="flex:1;">النوع
+          <select id="f-gender">
+            <option value="">—</option>
+            <option value="ذكر">ذكر</option>
+            <option value="أنثى">أنثى</option>
+          </select>
+        </label>
+      </div>
+      <label class="fld">التشخيص
+        <input id="f-diag" type="text" placeholder="مثال: آلم أسفل الضهر">
+      </label>
+      <label class="fld">نوع البرنامج العلاجي
+        <input id="f-prog" type="text" placeholder="مثال: تأهيل ركبة">
+      </label>
+      <div class="btnrow" style="gap:10px;">
+        <label class="fld" style="flex:1;">عدد الجلسات
+          <input id="f-total" type="number" inputmode="numeric" min="1" placeholder="10">
+        </label>
+        <label class="fld" style="flex:1;">سعر الباكدج (ج)
+          <input id="f-price" type="number" inputmode="decimal" min="0" placeholder="0">
+        </label>
+      </div>
+      <label class="fld">ملاحظات
+        <textarea id="f-notes" placeholder="أي حاجة مهمة عن الحالة"></textarea>
+      </label>
+      <button class="btn" id="btn-save-patient">حفظ</button>
+    </div>
+  </div>
+
+  <!-- ================= PATIENT FILE ================= -->
+  <div id="view-patient" class="hidden page">
+    <div class="card">
+      <div class="phead">
+        <div class="avatar" id="p-avatar">؟</div>
+        <div style="flex:1;min-width:0;">
+          <div class="nm" id="p-name"></div>
+          <div class="meta" id="p-meta"></div>
+          <div class="meta" id="p-diag"></div>
+        </div>
+      </div>
+      <div class="iconbtns">
+        <a id="p-call" href="#">📞 اتصال</a>
+        <a id="p-wa" href="#" target="_blank" rel="noopener">💬 واتساب</a>
+        <button id="p-edit">✏️ تعديل</button>
+      </div>
+      <div class="hint hidden" id="p-notes-view" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>البرنامج العلاجي</h3>
+      <div id="p-prog-name" style="font-weight:700;"></div>
+      <div class="progress-wrap"><div class="progress-bar" id="p-progbar" style="width:0%"></div></div>
+      <div class="hint" id="p-prog-text"></div>
+      <div class="btnrow" style="gap:10px;margin-top:12px;">
+        <label class="fld" style="flex:1;">📅 الجلسة الجاية
+          <input id="p-nextdate" type="date">
+        </label>
+        <label class="fld" style="flex:1;">🕐 الساعة
+          <input id="p-nexttime" type="time">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>الحساب 💰</h3>
+      <div class="money-row"><span>إجمالي الباكدج</span><span class="v" id="m-total">0 ج</span></div>
+      <div class="money-row"><span>المدفوع</span><span class="v green" id="m-paid">0 ج</span></div>
+      <div class="money-row"><span>الباقي</span><span class="v red" id="m-remain">0 ج</span></div>
+      <button class="btn secondary small" id="btn-add-payment">＋ سجّل دفعة</button>
+      <div id="pay-form" class="hidden" style="margin-top:12px;">
+        <div class="btnrow" style="gap:10px;">
+          <label class="fld" style="flex:1;">المبلغ (ج)
+            <input id="pay-amount" type="number" inputmode="decimal" min="0">
+          </label>
+          <label class="fld" style="flex:1;">التاريخ
+            <input id="pay-date" type="date">
+          </label>
+        </div>
+        <label class="fld">ملاحظة
+          <input id="pay-note" type="text" placeholder="اختياري">
+        </label>
+        <button class="btn" id="btn-save-payment">حفظ الدفعة</button>
+      </div>
+      <div id="payments-history"></div>
+    </div>
+
+    <div class="card">
+      <h3>الجلسات 📝</h3>
+      <button class="btn" id="btn-add-session">＋ سجّل جلسة النهاردة</button>
+      <div id="session-form" class="hidden" style="margin-top:12px;">
+        <label class="fld">التاريخ
+          <input id="s-date" type="date">
+        </label>
+        <label class="fld">إيه اللي اتعمل في الجلسة؟
+          <textarea id="s-work" placeholder="مثال: ألتراساوند + تمرينات إطالة"></textarea>
+        </label>
+        <label class="fld">ملاحظات / تطور الحالة
+          <textarea id="s-note" placeholder="مثال: الألم قل، المدى الحركي اتحسن"></textarea>
+        </label>
+        <button class="btn" id="btn-save-session">حفظ الجلسة</button>
+      </div>
+      <ul class="timeline" id="sessions-list" style="margin-top:14px;"></ul>
+      <div class="empty hidden" id="sessions-empty" style="padding:16px;">مفيش جلسات متسجلة لسه</div>
+    </div>
+
+    <div class="card">
+      <h3>الأشعة والصور 🩻</h3>
+      <button class="btn secondary" id="btn-add-xray">＋ ارفع صورة</button>
+      <input id="xray-input" type="file" accept="image/*" multiple class="hidden">
+      <div class="xgrid" id="xray-grid"></div>
+      <div class="empty hidden" id="xray-empty" style="padding:16px;">مفيش صور لسه</div>
+    </div>
+
+    <div class="card">
+      <button class="btn gray" id="btn-wa-remind">📨 ابعتله تذكير واتساب بالموعد الجاي</button>
+      <div id="wa-editor" class="hidden" style="margin-top:12px;">
+        <label class="fld">الرسالة (تقدر تعدلها قبل الإرسال)
+          <textarea id="wa-text" style="min-height:110px;"></textarea>
+        </label>
+        <button class="btn" id="btn-wa-send">افتح واتساب بالرسالة 💬</button>
+      </div>
+      <button class="btn danger" id="btn-del-patient">🗑️ مسح العميل</button>
+    </div>
+  </div>
+
+  <!-- ================= SETTINGS ================= -->
+  <div id="view-settings" class="hidden page">
+    <div class="notice">
+      🔐 بيانات العملاء محفوظة على الموبايل ده بس. لو الموبايل ضاع أو اتفرمت من غير نسخة احتياطية، البيانات بتضيع. <b>اعمل نسخة احتياطية كل فترة</b> واحتفظ بيها في مكان آمن (درايف أو واتساب لنفسك).
+    </div>
+    <div class="card">
+      <h3>النسخة الاحتياطية</h3>
+      <button class="btn" id="btn-export">⬇️ اعمل نسخة احتياطية</button>
+      <button class="btn secondary" id="btn-import">⬆️ استرجع نسخة احتياطية</button>
+      <input id="import-input" type="file" accept="application/json,.json" class="hidden">
+      <div class="hint">النسخة بتشمل كل العملاء والجلسات والحسابات والصور. الاسترجاع بيستبدل كل البيانات الحالية.</div>
+    </div>
+    <div class="card">
+      <h3>رسالة تذكير الموعد (واتساب)</h3>
+      <label class="fld">نص الرسالة
+        <textarea id="wa-template" style="min-height:110px;"></textarea>
+      </label>
+      <div class="hint">الكلمات دي بتتبدل تلقائيًا: {اسم} {تاريخ} {وقت}</div>
+      <button class="btn secondary" id="btn-save-template">حفظ النص</button>
+    </div>
+    <div class="card">
+      <h3>الرقم السري</h3>
+      <button class="btn secondary" id="btn-change-pin">غيّر الرقم السري</button>
+    </div>
+    <div class="card">
+      <h3>منطقة الخطر</h3>
+      <button class="btn danger" id="btn-wipe">🗑️ مسح كل البيانات نهائيًا</button>
+    </div>
+    <div class="card center muted" style="font-size:13px;">
+      سجل عملاء مركز النيل — نسخة أولية<br>الإصدار 1.0
+    </div>
+  </div>
+
+  <!-- X-ray fullscreen viewer -->
+  <div id="xviewer" class="xviewer hidden">
+    <img id="xviewer-img" alt="صورة الأشعة">
+    <div class="row">
+      <button class="del" id="xviewer-del">🗑️ مسح</button>
+      <button class="close" id="xviewer-close">إغلاق</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   سجل عملاء مركز النيل — تطبيق محلي بالكامل
+   البيانات كلها على الجهاز (IndexedDB)، مفيش سيرفر.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtMoney = n => (Number(n)||0).toLocaleString("en-EG") + " ج";
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function fmtDate(iso){
+  if(!iso) return "—";
+  try{ return new Date(iso+"T00:00:00").toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}); }catch(e){ return iso; }
+}
+function fmtTime(t){
+  if(!t) return "";
+  try{ return new Date("2000-01-01T"+t).toLocaleTimeString("ar-EG",{hour:"numeric",minute:"2-digit"}); }catch(e){ return t; }
+}
+function normalizeWaPhone(p){
+  let d = String(p||"").replace(/\D/g,"");
+  if(d.startsWith("0020")) d = d.slice(2);
+  if(d.startsWith("0")) d = "20"+d.slice(1);
+  return d;
+}
+
+/* ---------- IndexedDB ---------- */
+let db;
+function dbOpen(){
+  return new Promise((res,rej)=>{
+    const rq = indexedDB.open("nile-center",1);
+    rq.onupgradeneeded = e=>{
+      const d = e.target.result;
+      d.createObjectStore("patients",{keyPath:"id",autoIncrement:true});
+      const s = d.createObjectStore("sessions",{keyPath:"id",autoIncrement:true}); s.createIndex("patientId","patientId");
+      const p = d.createObjectStore("payments",{keyPath:"id",autoIncrement:true}); p.createIndex("patientId","patientId");
+      const x = d.createObjectStore("xrays",{keyPath:"id",autoIncrement:true}); x.createIndex("patientId","patientId");
+    };
+    rq.onsuccess = e=>{ db=e.target.result; res(db); };
+    rq.onerror = e=>rej(e.target.error);
+  });
+}
+function tx(store,mode){ return db.transaction(store,mode).objectStore(store); }
+function dbAll(store){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readonly").getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=e=>rej(e.target.error); });
+}
+function dbByPatient(store,pid){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readonly").index("patientId").getAll(IDBKeyRange.only(pid)); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=e=>rej(e.target.error); });
+}
+function dbAdd(store,val){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").add(val); rq.onsuccess=()=>res(rq.result); rq.onerror=e=>rej(e.target.error); });
+}
+function dbPut(store,val){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").put(val); rq.onsuccess=()=>res(rq.result); rq.onerror=e=>rej(e.target.error); });
+}
+function dbDel(store,key){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").delete(key); rq.onsuccess=()=>res(); rq.onerror=e=>rej(e.target.error); });
+}
+function dbClear(store){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").clear(); rq.onsuccess=()=>res(); rq.onerror=e=>rej(e.target.error); });
+}
+
+/* ---------- PIN ---------- */
+async function sha256(t){
+  if(window.crypto && crypto.subtle){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nile:"+t));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))>>>0; return "x"+h;
+}
+const PIN_KEY="nc_pin_hash";
+let pinMode="unlock", pinFirst="", pinBuf="";
+
+function renderDots(){
+  const dots=$("pin-dots").children;
+  for(let i=0;i<dots.length;i++) dots[i].className = i<pinBuf.length ? "on" : "";
+}
+function pinPress(k){
+  if(k==="del"){ pinBuf=pinBuf.slice(0,-1); renderDots(); $("lock-error").textContent=""; return; }
+  if(pinBuf.length>=4) return;
+  pinBuf+=k; renderDots();
+  if(pinBuf.length===4) setTimeout(pinSubmit,120);
+}
+async function pinSubmit(){
+  $("lock-error").textContent="";
+  if(pinMode==="setup1"){
+    pinFirst=pinBuf; pinBuf=""; renderDots();
+    pinMode="setup2"; $("lock-sub").textContent="اكتب الرقم تاني للتأكيد";
+    return;
+  }
+  if(pinMode==="setup2"){
+    if(pinBuf===pinFirst){
+      localStorage.setItem(PIN_KEY, await sha256(pinBuf));
+      pinBuf=""; pinMode="unlock";
+      enterApp();
+    } else {
+      $("lock-error").textContent="الرقمان مش متطابقين، ابدأ من الأول";
+      pinMode="setup1"; pinFirst=""; pinBuf=""; renderDots();
+      $("lock-sub").textContent="اختار رقم سري من 4 أرقام";
+    }
+    return;
+  }
+  if(pinMode==="change2"){
+    localStorage.setItem(PIN_KEY, await sha256(pinBuf));
+    pinBuf=""; pinMode="unlock";
+    enterApp();
+    return;
+  }
+  // unlock / change1 (both compare against stored)
+  const h = await sha256(pinBuf);
+  if(h===localStorage.getItem(PIN_KEY)){
+    if(pinMode==="change1"){
+      pinMode="change2"; pinBuf=""; renderDots();
+      $("lock-sub").textContent="اكتب الرقم الجديد (4 أرقام)";
+    } else {
+      pinBuf=""; enterApp();
+    }
+  } else {
+    $("lock-error").textContent="الرقم غلط، حاول تاني";
+    pinBuf=""; renderDots();
+  }
+}
+function showLock(mode){
+  pinMode=mode; pinBuf=""; pinFirst=""; renderDots(); $("lock-error").textContent="";
+  $("lock-sub").textContent =
+    mode==="setup1" ? "اختار رقم سري من 4 أرقام يقفل التطبيق" :
+    mode==="setup2" ? "اكتب الرقم تاني للتأكيد" :
+    mode==="change1" ? "اكتب رقمك الحالي" :
+    mode==="change2" ? "اكتب الرقم الجديد (4 أرقام)" : "ادخل رقمك السري";
+  $("lock-forgot").classList.toggle("hidden", !(mode==="unlock"));
+  $("lock-cancel").classList.toggle("hidden", !(mode==="change1"||mode==="change2"));
+  hideAllViews(); $("view-lock").classList.remove("hidden");
+  $("topbar").classList.add("hidden");
+}
+
+/* ---------- Navigation ---------- */
+const VIEWS=["home","patients","edit-patient","patient","settings"];
+let navStack=["home"];
+function hideAllViews(){ VIEWS.forEach(v=>$("view-"+v).classList.add("hidden")); $("view-lock").classList.add("hidden"); }
+function show(name,push){
+  hideAllViews();
+  $("view-"+name).classList.remove("hidden");
+  $("topbar").classList.remove("hidden");
+  if(push!==false) navStack.push(name);
+  const isHome = name==="home";
+  $("btn-back").classList.toggle("hidden", isHome);
+  $("topbar-spacer").classList.toggle("hidden", !isHome);
+  $("topbar-title").textContent =
+    name==="home" ? "مركز النيل 🩺" :
+    name==="patients" ? "كل العملاء" :
+    name==="edit-patient" ? (editingPatientId ? "تعديل عميل" : "عميل جديد") :
+    name==="patient" ? "ملف العميل" : "الإعدادات";
+  window.scrollTo(0,0);
+}
+function goBack(){
+  if(navStack.length>1) navStack.pop();
+  const v = navStack[navStack.length-1] || "home";
+  navStack.pop();
+  show(v);
+  if(v==="home") renderHome();
+  if(v==="patients") renderPatients();
+  if(v==="patient") renderPatient();
+}
+function enterApp(){
+  navStack=["home"];
+  show("home",false);
+  renderHome();
+}
+
+/* ---------- State ---------- */
+let patients=[], sessions=[], payments=[], xrays=[];
+let currentPatientId=null, editingPatientId=null;
+
+async function reloadAll(){
+  patients = await dbAll("patients");
+  sessions = await dbAll("sessions");
+  payments = await dbAll("payments");
+  xrays    = await dbAll("xrays");
+}
+const patientSessions = pid => sessions.filter(s=>s.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+const patientPayments = pid => payments.filter(p=>p.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id);
+const patientXrays    = pid => xrays.filter(x=>x.patientId===pid).sort((a,b)=> b.id-a.id);
+
+/* ---------- Home ---------- */
+function renderHome(){
+  const h=new Date().getHours();
+  $("greet1").textContent = (h<12 ? "صباح الخير" : "مساء الخير") + " يا دكتور 👋";
+  $("greet2").textContent = new Date().toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const t=todayStr();
+  const due = patients.filter(p=>p.nextDate && p.nextDate<=t);
+  const doneToday = sessions.filter(s=>s.date===t);
+  $("st-today").textContent = due.length;
+  $("st-sessions").textContent = doneToday.length;
+  $("st-total").textContent = patients.length;
+
+  const list=$("today-list"); list.innerHTML="";
+  due.sort((a,b)=>a.nextDate.localeCompare(b.nextDate));
+  for(const p of due){
+    const did = sessions.some(s=>s.patientId===p.id && s.date===t);
+    const late = p.nextDate<t;
+    const chip = did ? '<span class="chip done">خلص النهاردة ✓</span>'
+              : late ? '<span class="chip late">متأخر من '+esc(fmtDate(p.nextDate))+'</span>'
+              : '<span class="chip wait">مستني النهاردة</span>';
+    const done=patientSessions(p.id).length;
+    list.insertAdjacentHTML("beforeend",
+      `<li data-pid="${p.id}"><div class="avatar">${esc((p.name||"؟").trim()[0]||"؟")}</div>
+       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+       <div class="sub">${esc(p.programType||p.diagnosis||"")}${p.totalSessions?` — جلسة ${Math.min(done+1,p.totalSessions)} من ${p.totalSessions}`:""}</div></div>
+       ${chip}</li>`);
+  }
+  $("today-empty").classList.toggle("hidden", due.length>0);
+  bindPatientRows(list);
+  applySearch();
+}
+function bindPatientRows(list){
+  list.querySelectorAll("li[data-pid]").forEach(li=>{
+    li.addEventListener("click",()=>{ currentPatientId=Number(li.dataset.pid); show("patient"); renderPatient(); });
+  });
+}
+
+/* ---------- Search ---------- */
+function applySearch(){
+  const q=$("search").value.trim();
+  const wrap=$("home-search-results");
+  if(!q){ wrap.classList.add("hidden"); $("home-today-wrap").classList.remove("hidden"); return; }
+  const res=patients.filter(p=>(p.name||"").includes(q)||(p.phone||"").includes(q));
+  const list=$("search-list"); list.innerHTML="";
+  for(const p of res){
+    const done=patientSessions(p.id).length;
+    list.insertAdjacentHTML("beforeend",
+      `<li data-pid="${p.id}"><div class="avatar">${esc((p.name||"؟").trim()[0]||"؟")}</div>
+       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+       <div class="sub">${esc(p.phone||"")}${p.totalSessions?` — خلص ${done} من ${p.totalSessions}`:""}</div></div></li>`);
+  }
+  if(!res.length) list.innerHTML='<div class="empty" style="padding:16px;">مفيش نتايج</div>';
+  bindPatientRows(list);
+  wrap.classList.remove("hidden"); $("home-today-wrap").classList.add("hidden");
+}
+
+/* ---------- All patients ---------- */
+function renderPatients(){
+  const q=$("search2").value.trim();
+  const arr=patients.filter(p=>!q||(p.name||"").includes(q)||(p.phone||"").includes(q))
+                    .sort((a,b)=>(a.name||"").localeCompare(b.name||"","ar"));
+  const list=$("patients-list"); list.innerHTML="";
+  for(const p of arr){
+    const done=patientSessions(p.id).length;
+    list.insertAdjacentHTML("beforeend",
+      `<li data-pid="${p.id}"><div class="avatar">${esc((p.name||"؟").trim()[0]||"؟")}</div>
+       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+       <div class="sub">${esc(p.phone||"")}${p.totalSessions?` — خلص ${done} من ${p.totalSessions} جلسة`:""}</div></div>
+       ${p.nextDate?`<span class="chip gray">${esc(fmtDate(p.nextDate))}</span>`:""}</li>`);
+  }
+  $("patients-empty").classList.toggle("hidden", arr.length>0);
+  bindPatientRows(list);
+}
+
+/* ---------- Add / edit patient ---------- */
+function openEditPatient(p){
+  editingPatientId = p ? p.id : null;
+  $("edit-patient-title").textContent = p ? "تعديل بيانات العميل" : "عميل جديد";
+  $("f-name").value=p?.name||""; $("f-phone").value=p?.phone||"";
+  $("f-age").value=p?.age||""; $("f-gender").value=p?.gender||"";
+  $("f-diag").value=p?.diagnosis||""; $("f-prog").value=p?.programType||"";
+  $("f-total").value=p?.totalSessions||""; $("f-price").value=p?.packagePrice||"";
+  $("f-notes").value=p?.notes||"";
+  show("edit-patient");
+}
+async function savePatient(){
+  const name=$("f-name").value.trim();
+  if(!name){ alert("اكتب اسم العميل الأول"); return; }
+  const val={
+    name, phone:$("f-phone").value.trim(),
+    age:$("f-age").value?Number($("f-age").value):null,
+    gender:$("f-gender").value||"",
+    diagnosis:$("f-diag").value.trim(),
+    programType:$("f-prog").value.trim(),
+    totalSessions:$("f-total").value?Number($("f-total").value):null,
+    packagePrice:$("f-price").value?Number($("f-price").value):0,
+    notes:$("f-notes").value.trim(),
+  };
+  if(editingPatientId){
+    const old=patients.find(p=>p.id===editingPatientId)||{};
+    await dbPut("patients",{...old,...val,id:editingPatientId});
+    currentPatientId=editingPatientId;
+  } else {
+    val.createdAt=new Date().toISOString(); val.nextDate=null;
+    currentPatientId=await dbAdd("patients",val);
+  }
+  editingPatientId=null;
+  await reloadAll();
+  navStack=["home"];
+  show("patient"); renderPatient();
+}
+
+/* ---------- Patient file ---------- */
+function renderPatient(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p){ goBack(); return; }
+  $("p-avatar").textContent=(p.name||"؟").trim()[0]||"؟";
+  $("p-name").textContent=p.name;
+  const meta=[];
+  if(p.age) meta.push(p.age+" سنة");
+  if(p.gender) meta.push(p.gender);
+  if(p.phone) meta.push(p.phone);
+  $("p-meta").textContent=meta.join(" • ")||"—";
+  $("p-diag").textContent=p.diagnosis?("التشخيص: "+p.diagnosis):"";
+  $("p-call").href=p.phone?("tel:"+p.phone):"#";
+  const wa=normalizeWaPhone(p.phone);
+  $("p-wa").href=wa?("https://wa.me/"+wa):"#";
+  $("p-notes-view").classList.toggle("hidden",!p.notes);
+  $("p-notes-view").textContent=p.notes?("📌 "+p.notes):"";
+
+  const ss=patientSessions(p.id);
+  const done=ss.length, total=p.totalSessions||0;
+  $("p-prog-name").textContent=p.programType||"—";
+  if(total>0){
+    const pct=Math.min(100,Math.round(done/total*100));
+    $("p-progbar").style.width=pct+"%";
+    $("p-prog-text").textContent=`خلص ${done} من ${total} جلسة`+(done>=total?" — البرنامج خلص 🎉":` — فاضل ${total-done}`);
+  } else {
+    $("p-progbar").style.width=total===0&&done>0?"100%":"0%";
+    $("p-prog-text").textContent=`خلص ${done} جلسة`+(total===0?" (مفيش عدد محدد)":"");
+  }
+  $("p-nextdate").value=p.nextDate||"";
+  $("p-nexttime").value=p.nextTime||"";
+  $("wa-editor").classList.add("hidden");
+
+  const ps=patientPayments(p.id);
+  const paid=ps.reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const totalPrice=Number(p.packagePrice)||0;
+  $("m-total").textContent=fmtMoney(totalPrice);
+  $("m-paid").textContent=fmtMoney(paid);
+  $("m-remain").textContent=fmtMoney(Math.max(0,totalPrice-paid));
+  const ph=$("payments-history");
+  ph.innerHTML = ps.length
+    ? '<div class="section-title" style="padding:10px 0 2px;">الدفعات</div>'+
+      ps.map(x=>`<div class="money-row"><span>${esc(fmtDate(x.date))}${x.note?" — "+esc(x.note):""}</span><span class="v green">${fmtMoney(x.amount)}</span></div>`).join("")
+    : "";
+  $("pay-form").classList.add("hidden");
+
+  const sl=$("sessions-list"); sl.innerHTML="";
+  for(const s of ss){
+    sl.insertAdjacentHTML("beforeend",
+      `<li><div class="d">${esc(fmtDate(s.date))}</div>
+       ${s.work?`<div class="w">${esc(s.work)}</div>`:""}
+       ${s.note?`<div class="n">${esc(s.note)}</div>`:""}</li>`);
+  }
+  $("sessions-empty").classList.toggle("hidden", ss.length>0);
+  $("session-form").classList.add("hidden");
+
+  renderXrayGrid();
+}
+
+/* ---------- Sessions ---------- */
+async function saveSession(){
+  const date=$("s-date").value||todayStr();
+  const work=$("s-work").value.trim(), note=$("s-note").value.trim();
+  if(!work && !note){ alert("اكتب اللي اتعمل في الجلسة على الأقل"); return; }
+  await dbAdd("sessions",{patientId:currentPatientId,date,work,note,createdAt:new Date().toISOString()});
+  $("s-work").value=""; $("s-note").value="";
+  await reloadAll(); renderPatient();
+}
+
+/* ---------- Payments ---------- */
+async function savePayment(){
+  const amt=Number($("pay-amount").value);
+  if(!amt||amt<=0){ alert("اكتب مبلغ صحيح"); return; }
+  await dbAdd("payments",{patientId:currentPatientId,amount:amt,date:$("pay-date").value||todayStr(),note:$("pay-note").value.trim()});
+  $("pay-amount").value=""; $("pay-note").value="";
+  await reloadAll(); renderPatient();
+}
+
+/* ---------- X-rays ---------- */
+function renderXrayGrid(){
+  const xs=patientXrays(currentPatientId);
+  const g=$("xray-grid"); g.innerHTML="";
+  for(const x of xs){
+    const url=URL.createObjectURL(x.blob);
+    const b=document.createElement("button");
+    b.className="thumb";
+    b.innerHTML=`<img src="${url}" alt="أشعة">`;
+    b.addEventListener("click",()=>openXray(x));
+    g.appendChild(b);
+  }
+  $("xray-empty").classList.toggle("hidden", xs.length>0);
+}
+let viewingXray=null;
+function openXray(x){
+  viewingXray=x;
+  $("xviewer-img").src=URL.createObjectURL(x.blob);
+  $("xviewer").classList.remove("hidden");
+}
+async function compressImage(file){
+  const bmp=await createImageBitmap(file);
+  const scale=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(bmp.width*scale));
+  c.height=Math.max(1,Math.round(bmp.height*scale));
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  return await new Promise(r=>c.toBlob(r,"image/jpeg",0.82));
+}
+async function onXrayPicked(ev){
+  const files=[...ev.target.files];
+  for(const f of files){
+    try{
+      const blob=await compressImage(f);
+      await dbAdd("xrays",{patientId:currentPatientId,blob,ts:new Date().toISOString()});
+    }catch(e){ alert("الصورة دي مش قدرت أقراها"); }
+  }
+  ev.target.value="";
+  await reloadAll(); renderXrayGrid();
+}
+
+/* ---------- WhatsApp reminder ---------- */
+const WA_TPL_KEY="nc_wa_template";
+const WA_TPL_DEFAULT="أستاذ {اسم}، معاك مركز النيل للعلاج الطبيعي. بنفتكرك بجلسة العلاج الجاية يوم {تاريخ} الساعة {وقت}. لو محتاج تغيّر الموعد رد علينا. 🌹";
+function waTemplate(){ return localStorage.getItem(WA_TPL_KEY)||WA_TPL_DEFAULT; }
+function renderWaMessage(p){
+  const dateTxt=p.nextDate?fmtDate(p.nextDate):"قريب";
+  const timeTxt=p.nextTime?fmtTime(p.nextTime):"—";
+  return waTemplate().split("{اسم}").join(p.name||"").split("{تاريخ}").join(dateTxt).split("{وقت}").join(timeTxt);
+}
+function waRemind(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p||!p.phone){ alert("العميل ده مفيهوش رقم تليفون"); return; }
+  $("wa-text").value=renderWaMessage(p);
+  $("wa-editor").classList.toggle("hidden");
+}
+function waSend(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p||!p.phone) return;
+  const wa=normalizeWaPhone(p.phone);
+  window.open("https://wa.me/"+wa+"?text="+encodeURIComponent($("wa-text").value),"_blank");
+}
+
+/* ---------- Delete patient ---------- */
+async function deletePatient(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p) return;
+  if(!confirm(`متأكد إنك عايز تمسح "${p.name}" وكل جلساته وحساباته وصوره؟ ده مش بيتراجع عنه.`)) return;
+  for(const s of patientSessions(p.id)) await dbDel("sessions",s.id);
+  for(const x of patientPayments(p.id)) await dbDel("payments",x.id);
+  for(const x of patientXrays(p.id)) await dbDel("xrays",x.id);
+  await dbDel("patients",p.id);
+  await reloadAll();
+  navStack=["home"]; show("home",false); renderHome();
+}
+
+/* ---------- Backup ---------- */
+function blobToBase64(blob){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(blob); });
+}
+function base64ToBlob(b64){
+  const bin=atob(b64); const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:"image/jpeg"});
+}
+async function exportBackup(){
+  const obj={
+    app:"nile-center", version:1, exportedAt:new Date().toISOString(),
+    patients, sessions, payments,
+    xrays: await Promise.all(xrays.map(async x=>({id:x.id,patientId:x.patientId,ts:x.ts,data:await blobToBase64(x.blob)})))
+  };
+  const blob=new Blob([JSON.stringify(obj)],{type:"application/json"});
+  const fname="نسخة-احتياطية-مركز-النيل-"+todayStr()+".json";
+  const file=new File([blob],fname,{type:"application/json"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:"نسخة احتياطية"}); return; }catch(e){ if(e && e.name==="AbortError") return; }
+  }
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=fname;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function importBackup(ev){
+  const f=ev.target.files[0]; ev.target.value="";
+  if(!f) return;
+  let obj;
+  try{ obj=JSON.parse(await f.text()); }catch(e){ alert("الملف ده مش نسخة احتياطية صالحة"); return; }
+  if(!obj||obj.app!=="nile-center"||!Array.isArray(obj.patients)){ alert("الملف ده مش نسخة احتياطية صالحة"); return; }
+  if(!confirm("الاسترجاع هيستبدل كل البيانات الحالية بالنسخة دي. متأكد؟")) return;
+  for(const st of ["patients","sessions","payments","xrays"]) await dbClear(st);
+  for(const p of obj.patients) await dbAdd("patients",p);
+  for(const s of (obj.sessions||[])) await dbAdd("sessions",s);
+  for(const x of (obj.payments||[])) await dbAdd("payments",x);
+  for(const x of (obj.xrays||[])) await dbAdd("xrays",{patientId:x.patientId,ts:x.ts,blob:base64ToBlob(x.data)});
+  await reloadAll();
+  alert("تمام ✅ البيانات اترجعت");
+  navStack=["home"]; show("home",false); renderHome();
+}
+
+/* ---------- Wipe / forgot PIN ---------- */
+async function wipeAll(){
+  for(const st of ["patients","sessions","payments","xrays"]) await dbClear(st);
+  localStorage.removeItem(PIN_KEY);
+  await reloadAll();
+  showLock("setup1");
+}
+
+/* ---------- Wiring ---------- */
+function init(){
+  // PIN pad
+  const pad=$("pinpad");
+  ["1","2","3","4","5","6","7","8","9","","0","del"].forEach(k=>{
+    const b=document.createElement("button");
+    b.textContent = k==="del" ? "⌫" : k;
+    if(k!=="") b.addEventListener("click",()=>pinPress(k));
+    pad.appendChild(b);
+  });
+  $("lock-forgot").addEventListener("click",()=>{
+    if(confirm("لو نسيت الرقم، الطريقة الوحيدة هي مسح كل البيانات والبدء من جديد (تقدر تسترجع من نسخة احتياطية لو عندك). متأكد؟")) wipeAll();
+  });
+  $("lock-cancel").addEventListener("click",()=>{ navStack=["home","settings"]; show("settings",false); });
+
+  $("btn-back").addEventListener("click",goBack);
+  $("btn-lock-now").addEventListener("click",()=>showLock("unlock"));
+
+  // Home
+  $("search").addEventListener("input",applySearch);
+  $("btn-all-patients").addEventListener("click",()=>{ show("patients"); renderPatients(); });
+  $("btn-settings").addEventListener("click",()=>show("settings"));
+  $("btn-new-patient").addEventListener("click",()=>openEditPatient(null));
+  $("btn-new-patient2").addEventListener("click",()=>openEditPatient(null));
+  $("search2").addEventListener("input",renderPatients);
+  $("topbar-title").addEventListener("click",()=>{ if(navStack[navStack.length-1]==="home"){ show("settings"); } });
+
+  // Patient form
+  $("btn-save-patient").addEventListener("click",savePatient);
+
+  // Patient file
+  $("p-edit").addEventListener("click",()=>openEditPatient(patients.find(p=>p.id===currentPatientId)));
+  $("p-nextdate").addEventListener("change",async ev=>{
+    const p=patients.find(x=>x.id===currentPatientId);
+    if(p){ p.nextDate=ev.target.value||null; await dbPut("patients",p); }
+  });
+  $("p-nexttime").addEventListener("change",async ev=>{
+    const p=patients.find(x=>x.id===currentPatientId);
+    if(p){ p.nextTime=ev.target.value||null; await dbPut("patients",p); }
+  });
+  $("btn-add-session").addEventListener("click",()=>{
+    $("session-form").classList.toggle("hidden");
+    $("s-date").value=todayStr();
+  });
+  $("btn-save-session").addEventListener("click",saveSession);
+  $("btn-add-payment").addEventListener("click",()=>{
+    $("pay-form").classList.toggle("hidden");
+    $("pay-date").value=todayStr();
+  });
+  $("btn-save-payment").addEventListener("click",savePayment);
+  $("btn-add-xray").addEventListener("click",()=>$("xray-input").click());
+  $("xray-input").addEventListener("change",onXrayPicked);
+  $("btn-wa-remind").addEventListener("click",waRemind);
+  $("btn-wa-send").addEventListener("click",waSend);
+  $("btn-del-patient").addEventListener("click",deletePatient);
+  $("xviewer-close").addEventListener("click",()=>$("xviewer").classList.add("hidden"));
+  $("xviewer-del").addEventListener("click",async()=>{
+    if(viewingXray && confirm("تمسح الصورة دي؟")){
+      await dbDel("xrays",viewingXray.id);
+      viewingXray=null;
+      $("xviewer").classList.add("hidden");
+      await reloadAll(); renderXrayGrid();
+    }
+  });
+
+  // Settings
+  $("wa-template").value=waTemplate();
+  $("btn-save-template").addEventListener("click",()=>{
+    localStorage.setItem(WA_TPL_KEY,$("wa-template").value.trim()||WA_TPL_DEFAULT);
+    alert("اتحفظ ✅");
+  });
+  $("btn-export").addEventListener("click",exportBackup);
+  $("btn-import").addEventListener("click",()=>$("import-input").click());
+  $("import-input").addEventListener("change",importBackup);
+  $("btn-change-pin").addEventListener("click",()=>showLock("change1"));
+  $("btn-wipe").addEventListener("click",()=>{
+    if(confirm("ده هيمسح كل العملاء والجلسات والحسابات والصور نهائيًا من الموبايل ده. متأكد؟")) wipeAll();
+  });
+
+  // Auto-lock after 3 minutes hidden
+  let hiddenAt=null;
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden){ hiddenAt=Date.now(); }
+    else if(hiddenAt && Date.now()-hiddenAt>3*60*1000 && localStorage.getItem(PIN_KEY)){ showLock("unlock"); }
+    hiddenAt = document.hidden ? hiddenAt : null;
+  });
+}
+
+/* ---------- Boot ---------- */
+(async function(){
+  try{ await dbOpen(); await reloadAll(); }
+  catch(e){ document.body.innerHTML='<div class="empty" style="padding-top:80px;"><span class="ic">⚠️</span>المتصفح ده مش بيسمح بحفظ البيانات. جرّب تفتح التطبيق من سفاري أو كروم.</div>'; return; }
+  init();
+  showLock(localStorage.getItem(PIN_KEY) ? "unlock" : "setup1");
+})();
+</script>
+</body>
+</html>
