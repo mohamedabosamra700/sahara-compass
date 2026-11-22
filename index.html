@@ -401,6 +401,15 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
           </select>
         </label>
       </div>
+      <label class="fld">العنوان
+        <input id="f-address" type="text" placeholder="مثال: كفر الشيخ، شارع الجمهورية">
+      </label>
+      <label class="fld">الوظيفة
+        <input id="f-job" type="text" placeholder="مثال: موظف">
+      </label>
+      <label class="fld">تحويل الدكتور
+        <input id="f-refdoc" type="text" placeholder="اسم الدكتور اللي حوّل الحالة">
+      </label>
       <label class="fld">التشخيص
         <input id="f-diag" type="text" placeholder="مثال: آلم أسفل الضهر">
       </label>
@@ -418,6 +427,14 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       <label class="fld">ملاحظات
         <textarea id="f-notes" placeholder="أي حاجة مهمة عن الحالة"></textarea>
       </label>
+      <div class="fld" style="margin-bottom:6px;">أشعة وتحاليل (اختياري — بتتحفظ مع العميل)
+        <div class="btnrow" style="gap:8px;">
+          <button type="button" class="btn secondary" id="btn-f-xray" style="flex:1;">🩻 أشعة</button>
+          <button type="button" class="btn secondary" id="btn-f-lab" style="flex:1;">🧪 تحاليل</button>
+        </div>
+        <input id="f-file-input" type="file" accept="image/*" multiple class="hidden">
+        <div class="xgrid" id="f-file-grid"></div>
+      </div>
       <button class="btn" id="btn-save-patient">حفظ</button>
     </div>
   </div>
@@ -431,6 +448,7 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
           <div class="nm" id="p-name"></div>
           <div class="meta" id="p-meta"></div>
           <div class="meta" id="p-diag"></div>
+          <div class="meta" id="p-extra"></div>
         </div>
       </div>
       <div class="iconbtns">
@@ -499,11 +517,19 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
     </div>
 
     <div class="card">
-      <h3>الأشعة والصور 🩻</h3>
-      <button class="btn secondary" id="btn-add-xray">＋ ارفع صورة</button>
+      <h3>الأشعة 🩻</h3>
+      <button class="btn secondary" id="btn-add-xray">＋ ارفع أشعة</button>
       <input id="xray-input" type="file" accept="image/*" multiple class="hidden">
       <div class="xgrid" id="xray-grid"></div>
-      <div class="empty hidden" id="xray-empty" style="padding:16px;">مفيش صور لسه</div>
+      <div class="empty hidden" id="xray-empty" style="padding:16px;">مفيش أشعة لسه</div>
+    </div>
+
+    <div class="card">
+      <h3>التحاليل 🧪</h3>
+      <button class="btn secondary" id="btn-add-lab">＋ ارفع تحاليل</button>
+      <input id="lab-input" type="file" accept="image/*" multiple class="hidden">
+      <div class="xgrid" id="lab-grid"></div>
+      <div class="empty hidden" id="lab-empty" style="padding:16px;">مفيش تحاليل لسه</div>
     </div>
 
     <div class="card">
@@ -868,7 +894,7 @@ async function reloadAll(){
 }
 const patientSessions = pid => sessions.filter(s=>s.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
 const patientPayments = pid => payments.filter(p=>p.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id);
-const patientXrays    = pid => xrays.filter(x=>x.patientId===pid).sort((a,b)=> b.id-a.id);
+const patientFiles = (pid,kind) => xrays.filter(x=>x.patientId===pid && (x.kind||"xray")===kind).sort((a,b)=> b.id-a.id);
 
 /* ---------- Home ---------- */
 function renderHome(){
@@ -945,14 +971,44 @@ function renderPatients(){
 }
 
 /* ---------- Add / edit patient ---------- */
+let pendingPatientFiles=[];
+function renderPendingFiles(){
+  const g=$("f-file-grid"); if(!g) return; g.innerHTML="";
+  pendingPatientFiles.forEach((f,i)=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="thumb"; b.style.position="relative";
+    b.innerHTML=`<img src="${f.url}" alt="${f.kind==="lab"?"تحاليل":"أشعة"}"><span style="position:absolute;top:3px;left:3px;background:#dc2626;color:#fff;border-radius:50%;width:20px;height:20px;font-size:13px;line-height:20px;text-align:center;">×</span>`;
+    b.addEventListener("click",()=>{ URL.revokeObjectURL(f.url); pendingPatientFiles.splice(i,1); renderPendingFiles(); });
+    g.appendChild(b);
+  });
+}
+let pendingKind="xray";
+async function onPendingFilePicked(ev){
+  const files=[...ev.target.files];
+  for(const f of files){
+    try{
+      const blob=await compressImage(f);
+      pendingPatientFiles.push({kind:pendingKind,blob,url:URL.createObjectURL(blob)});
+    }catch(e){ alert("الصورة دي مش قدرت أقراها"); }
+  }
+  ev.target.value="";
+  renderPendingFiles();
+}
+function clearPendingFiles(){
+  pendingPatientFiles.forEach(f=>URL.revokeObjectURL(f.url));
+  pendingPatientFiles=[]; renderPendingFiles();
+}
 function openEditPatient(p){
   editingPatientId = p ? p.id : null;
   $("edit-patient-title").textContent = p ? "تعديل بيانات العميل" : "عميل جديد";
   $("f-name").value=p?.name||""; $("f-phone").value=p?.phone||"";
   $("f-age").value=p?.age||""; $("f-gender").value=p?.gender||"";
+  $("f-address").value=p?.address||""; $("f-job").value=p?.job||"";
+  $("f-refdoc").value=p?.refDoc||"";
   $("f-diag").value=p?.diagnosis||""; $("f-prog").value=p?.programType||"";
   $("f-total").value=p?.totalSessions||""; $("f-price").value=p?.packagePrice||"";
   $("f-notes").value=p?.notes||"";
+  clearPendingFiles();
   show("edit-patient");
 }
 async function savePatient(){
@@ -967,6 +1023,9 @@ async function savePatient(){
     totalSessions:$("f-total").value?Number($("f-total").value):null,
     packagePrice:$("f-price").value?Number($("f-price").value):0,
     notes:$("f-notes").value.trim(),
+    address:$("f-address").value.trim(),
+    job:$("f-job").value.trim(),
+    refDoc:$("f-refdoc").value.trim(),
   };
   if(editingPatientId){
     const old=patients.find(p=>p.id===editingPatientId)||{};
@@ -977,6 +1036,11 @@ async function savePatient(){
     currentPatientId=await dbAdd("patients",val);
   }
   editingPatientId=null;
+  for(const f of pendingPatientFiles){
+    await dbAdd("xrays",{patientId:currentPatientId,kind:f.kind,blob:f.blob,ts:new Date().toISOString()});
+    URL.revokeObjectURL(f.url);
+  }
+  pendingPatientFiles=[];
   await reloadAll();
   navStack=["home"];
   show("patient"); renderPatient();
@@ -994,6 +1058,11 @@ function renderPatient(){
   if(p.phone) meta.push(p.phone);
   $("p-meta").textContent=meta.join(" • ")||"—";
   $("p-diag").textContent=p.diagnosis?("التشخيص: "+p.diagnosis):"";
+  const extra=[];
+  if(p.address) extra.push("العنوان: "+p.address);
+  if(p.job) extra.push("الوظيفة: "+p.job);
+  if(p.refDoc) extra.push("تحويل: "+p.refDoc);
+  $("p-extra").textContent=extra.join(" • ");
   $("p-call").href=p.phone?("tel:"+p.phone):"#";
   const wa=normalizeWaPhone(p.phone);
   $("p-wa").href=wa?("https://wa.me/"+wa):"#";
@@ -1038,7 +1107,7 @@ function renderPatient(){
   $("sessions-empty").classList.toggle("hidden", ss.length>0);
   $("session-form").classList.add("hidden");
 
-  renderXrayGrid();
+  renderFileGrids();
 }
 
 /* ---------- Sessions ---------- */
@@ -1060,19 +1129,21 @@ async function savePayment(){
   await reloadAll(); renderPatient();
 }
 
-/* ---------- X-rays ---------- */
-function renderXrayGrid(){
-  const xs=patientXrays(currentPatientId);
-  const g=$("xray-grid"); g.innerHTML="";
-  for(const x of xs){
-    const url=URL.createObjectURL(x.blob);
-    const b=document.createElement("button");
-    b.className="thumb";
-    b.innerHTML=`<img src="${url}" alt="أشعة">`;
-    b.addEventListener("click",()=>openXray(x));
-    g.appendChild(b);
+/* ---------- X-rays & lab results ---------- */
+function renderFileGrids(){
+  for(const [kind,gridId,emptyId] of [["xray","xray-grid","xray-empty"],["lab","lab-grid","lab-empty"]]){
+    const xs=patientFiles(currentPatientId,kind);
+    const g=$(gridId); g.innerHTML="";
+    for(const x of xs){
+      const url=URL.createObjectURL(x.blob);
+      const b=document.createElement("button");
+      b.className="thumb";
+      b.innerHTML=`<img src="${url}" alt="${kind==="lab"?"تحاليل":"أشعة"}">`;
+      b.addEventListener("click",()=>openXray(x));
+      g.appendChild(b);
+    }
+    $(emptyId).classList.toggle("hidden", xs.length>0);
   }
-  $("xray-empty").classList.toggle("hidden", xs.length>0);
 }
 let viewingXray=null;
 function openXray(x){
@@ -1089,16 +1160,17 @@ async function compressImage(file){
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
   return await new Promise(r=>c.toBlob(r,"image/jpeg",0.82));
 }
-async function onXrayPicked(ev){
+let uploadKind="xray";
+async function onFilePicked(ev){
   const files=[...ev.target.files];
   for(const f of files){
     try{
       const blob=await compressImage(f);
-      await dbAdd("xrays",{patientId:currentPatientId,blob,ts:new Date().toISOString()});
+      await dbAdd("xrays",{patientId:currentPatientId,kind:uploadKind,blob,ts:new Date().toISOString()});
     }catch(e){ alert("الصورة دي مش قدرت أقراها"); }
   }
   ev.target.value="";
-  await reloadAll(); renderXrayGrid();
+  await reloadAll(); renderFileGrids();
 }
 
 /* ---------- WhatsApp reminder ---------- */
@@ -1130,7 +1202,7 @@ async function deletePatient(){
   if(!confirm(`متأكد إنك عايز تمسح "${p.name}" وكل جلساته وحساباته وصوره؟ ده مش بيتراجع عنه.`)) return;
   for(const s of patientSessions(p.id)) await dbDel("sessions",s.id);
   for(const x of patientPayments(p.id)) await dbDel("payments",x.id);
-  for(const x of patientXrays(p.id)) await dbDel("xrays",x.id);
+  for(const x of xrays.filter(z=>z.patientId===p.id)) await dbDel("xrays",x.id);
   await dbDel("patients",p.id);
   await reloadAll();
   navStack=["home"]; show("home",false); renderHome();
@@ -1149,7 +1221,7 @@ async function buildBackupObj(){
   return {
     app:"nile-center", version:1, exportedAt:new Date().toISOString(),
     patients, sessions, payments, expenses,
-    xrays: await Promise.all(xrays.map(async x=>({id:x.id,patientId:x.patientId,ts:x.ts,data:await blobToBase64(x.blob)})))
+    xrays: await Promise.all(xrays.map(async x=>({id:x.id,patientId:x.patientId,ts:x.ts,kind:x.kind||"xray",data:await blobToBase64(x.blob)})))
   };
 }
 async function downloadBackup(obj){
@@ -1225,7 +1297,7 @@ async function restoreBackupObj(obj){
   for(const s of (obj.sessions||[])) await dbAdd("sessions",s);
   for(const x of (obj.payments||[])) await dbAdd("payments",x);
   for(const x of (obj.expenses||[])) await dbAdd("expenses",x);
-  for(const x of (obj.xrays||[])) await dbAdd("xrays",{patientId:x.patientId,ts:x.ts,blob:base64ToBlob(x.data)});
+  for(const x of (obj.xrays||[])) await dbAdd("xrays",{patientId:x.patientId,ts:x.ts,kind:x.kind||"xray",blob:base64ToBlob(x.data)});
   await reloadAll();
   alert("تمام ✅ البيانات اترجعت");
   navStack=["home"]; show("home",false); renderHome();
@@ -1305,8 +1377,13 @@ function init(){
     $("pay-date").value=todayStr();
   });
   $("btn-save-payment").addEventListener("click",savePayment);
-  $("btn-add-xray").addEventListener("click",()=>$("xray-input").click());
-  $("xray-input").addEventListener("change",onXrayPicked);
+  $("btn-add-xray").addEventListener("click",()=>{ uploadKind="xray"; $("xray-input").click(); });
+  $("btn-add-lab").addEventListener("click",()=>{ uploadKind="lab"; $("lab-input").click(); });
+  $("xray-input").addEventListener("change",onFilePicked);
+  $("lab-input").addEventListener("change",onFilePicked);
+  $("btn-f-xray").addEventListener("click",()=>{ pendingKind="xray"; $("f-file-input").click(); });
+  $("btn-f-lab").addEventListener("click",()=>{ pendingKind="lab"; $("f-file-input").click(); });
+  $("f-file-input").addEventListener("change",onPendingFilePicked);
   $("btn-wa-remind").addEventListener("click",waRemind);
   $("btn-wa-send").addEventListener("click",waSend);
   $("btn-del-patient").addEventListener("click",deletePatient);
@@ -1316,7 +1393,7 @@ function init(){
       await dbDel("xrays",viewingXray.id);
       viewingXray=null;
       $("xviewer").classList.add("hidden");
-      await reloadAll(); renderXrayGrid();
+      await reloadAll(); renderFileGrids();
     }
   });
 
