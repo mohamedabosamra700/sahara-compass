@@ -200,10 +200,15 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
 .rep-exp-total{font-size:24px;font-weight:800;color:#dc2626;}
 #rep-net{color:var(--green);}
 #rep-net.neg{color:#dc2626;}
+#repd-net{color:var(--green);}
+#repd-net.neg{color:#dc2626;}
 .rep-row .v.red{color:#dc2626;}
 .xdel{background:none;border:none;color:#dc2626;font-size:15px;cursor:pointer;font-family:inherit;padding:0;margin-right:8px;}
 .row2{display:flex;gap:10px;}
 .row2>*{flex:1;}
+.seg{display:flex;gap:6px;background:var(--card);border-radius:12px;padding:4px;margin-top:14px;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.segbtn{flex:1;border:none;background:transparent;border-radius:9px;padding:9px;font-family:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;}
+.segbtn.on{background:var(--teal);color:#fff;}
 </style>
 </head>
 <body>
@@ -274,6 +279,11 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
 
   <!-- ================= MONTHLY REPORT ================= -->
   <div id="view-report" class="hidden page">
+    <div class="seg">
+      <button id="seg-month" class="segbtn on">شهري</button>
+      <button id="seg-day" class="segbtn">يومي</button>
+    </div>
+    <div id="report-month-view">
     <div class="month-nav">
       <button id="rep-prev" class="mbtn">الشهر اللي فات</button>
       <div class="mlabel" id="report-month-label"></div>
@@ -330,6 +340,39 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
     <div id="rep-rows"></div>
     <div class="empty hidden" id="rep-empty"><span class="ic">📭</span>مفيش جلسات ولا دفعات في الشهر ده</div>
     <div class="rep-note">الحسبة على تاريخ كل جلسة وكل دفعة.</div>
+    </div>
+    <div id="report-day-view" class="hidden">
+      <div class="month-nav">
+        <button id="repd-prev" class="mbtn">اليوم اللي فات</button>
+        <div class="mlabel" id="repd-label"></div>
+        <button id="repd-next" class="mbtn">اليوم الجاي</button>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div class="rep-big-label">إيرادات اليوم</div>
+        <div class="rep-big" id="repd-total">0 ج</div>
+      </div>
+      <div class="stats" style="padding:12px 0 4px;">
+        <div class="stat"><div class="n" id="repd-sessions">0</div><div class="l">جلسات اليوم</div></div>
+        <div class="stat"><div class="n" id="repd-clients">0</div><div class="l">عملاء اليوم</div></div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="rep-exp-head">
+          <div>
+            <div class="rep-big-label">مصروفات اليوم</div>
+            <div class="rep-exp-total" id="repd-exp-total">0 ج</div>
+          </div>
+          <div style="text-align:left;">
+            <div class="rep-big-label">صافي اليوم</div>
+            <div class="rep-exp-total" id="repd-net">0 ج</div>
+          </div>
+        </div>
+        <div id="repd-exp-rows"></div>
+        <div class="empty hidden" id="repd-exp-empty" style="padding:8px 0;">مفيش مصروفات في اليوم ده</div>
+      </div>
+      <div class="section-title" style="padding-top:10px;">مدفوعات اليوم</div>
+      <div id="repd-pay-rows"></div>
+      <div class="empty hidden" id="repd-pay-empty">مفيش مدفوعات في اليوم ده</div>
+    </div>
   </div>
 
   <!-- ================= ADD / EDIT PATIENT ================= -->
@@ -673,7 +716,44 @@ function showLock(mode){
 /* ---------- Monthly report ---------- */
 const AR_MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 let reportMonth = new Date(); reportMonth.setDate(1);
+let reportMode = "month", reportDay = new Date();
+function dayStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function setReportMode(m){
+  reportMode=m;
+  $("seg-month").classList.toggle("on",m==="month");
+  $("seg-day").classList.toggle("on",m==="day");
+  $("report-month-view").classList.toggle("hidden",m!=="month");
+  $("report-day-view").classList.toggle("hidden",m!=="day");
+  renderReport();
+}
+function renderReportDay(){
+  const ds=dayStr(reportDay);
+  const t=new Date(), ts=dayStr(t);
+  const yd=dayStr(new Date(t.getFullYear(),t.getMonth(),t.getDate()-1));
+  $("repd-label").textContent = ds===ts ? "النهاردة" : ds===yd ? "إمبارح" : fmtDate(ds);
+  const pays=payments.filter(x=>x.date===ds);
+  const sess=sessions.filter(x=>x.date===ds);
+  const exps=expenses.filter(x=>x.date===ds).sort((a,b)=>b.id-a.id);
+  const total=pays.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  const expTotal=exps.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  $("repd-total").textContent=fmtMoney(total);
+  $("repd-sessions").textContent=sess.length;
+  $("repd-clients").textContent=new Set(sess.map(s=>s.patientId)).size;
+  $("repd-exp-total").textContent=fmtMoney(expTotal);
+  const net=total-expTotal; const ne=$("repd-net"); ne.textContent=fmtMoney(net); ne.classList.toggle("neg",net<0);
+  $("repd-exp-rows").innerHTML=exps.map(x=>
+    `<div class="rep-row"><span>${esc(x.cat||"أخرى")}${x.note?" — "+esc(x.note):""}</span><span class="v red">${fmtMoney(x.amount)}<button class="xdel" data-exp="${x.id}">✕</button></span></div>`).join("");
+  $("repd-exp-empty").classList.toggle("hidden",exps.length>0);
+  $("repd-exp-rows").querySelectorAll(".xdel").forEach(b=>b.addEventListener("click",()=>delExpense(Number(b.dataset.exp))));
+  $("repd-pay-rows").innerHTML=pays.map(x=>{
+    const p=patients.find(z=>z.id===x.patientId);
+    return `<div class="rep-row"><span>${esc(p?p.name:"عميل محذوف")}${x.note?" — "+esc(x.note):""}</span><span class="v">${fmtMoney(x.amount)}</span></div>`;
+  }).join("");
+  $("repd-pay-empty").classList.toggle("hidden",pays.length>0);
+  $("repd-next").disabled = ds>=ts;
+}
 function renderReport(){
+  if(reportMode==="day"){ renderReportDay(); return; }
   const y=reportMonth.getFullYear(), m=reportMonth.getMonth();
   $("report-month-label").textContent = AR_MONTHS[m]+" "+y;
   const inMonth = d => { const p=String(d||"").split("-"); return p[0]===String(y) && Number(p[1])===m+1; };
@@ -1165,7 +1245,11 @@ function init(){
   $("search").addEventListener("input",applySearch);
   $("btn-all-patients").addEventListener("click",()=>{ show("patients"); renderPatients(); });
   $("btn-settings").addEventListener("click",()=>show("settings"));
-  $("btn-report").addEventListener("click",()=>{ reportMonth=new Date(); reportMonth.setDate(1); show("report"); renderReport(); });
+  $("btn-report").addEventListener("click",()=>{ reportMonth=new Date(); reportMonth.setDate(1); reportDay=new Date(); show("report"); setReportMode("month"); });
+  $("seg-month").addEventListener("click",()=>setReportMode("month"));
+  $("seg-day").addEventListener("click",()=>setReportMode("day"));
+  $("repd-prev").addEventListener("click",()=>{ reportDay.setDate(reportDay.getDate()-1); renderReport(); });
+  $("repd-next").addEventListener("click",()=>{ if(!$("repd-next").disabled){ reportDay.setDate(reportDay.getDate()+1); renderReport(); } });
   $("rep-prev").addEventListener("click",()=>{ reportMonth.setMonth(reportMonth.getMonth()-1); renderReport(); });
   $("rep-next").addEventListener("click",()=>{ if(!$("rep-next").disabled){ reportMonth.setMonth(reportMonth.getMonth()+1); renderReport(); } });
   $("btn-add-expense").addEventListener("click",()=>{ $("exp-form").classList.toggle("hidden"); if(!$("exp-date").value) $("exp-date").value=todayStr(); });
