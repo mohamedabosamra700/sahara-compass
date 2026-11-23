@@ -386,6 +386,14 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       <label class="fld">الاسم *
         <input id="f-name" type="text" placeholder="اسم العميل">
       </label>
+      <label class="fld">نوع التسجيل *
+        <select id="f-visit-type" aria-describedby="f-visit-help">
+          <option value="">اختار نوع التسجيل</option>
+          <option value="session">جلسة</option>
+          <option value="exam-session">كشف جديد + جلسة</option>
+        </select>
+        <small id="f-visit-help" class="muted">نوع أول زيارة. الجلسات والمدفوعات بتتسجل من ملف العميل بعد الحفظ.</small>
+      </label>
       <label class="fld">رقم التليفون
         <input id="f-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx">
       </label>
@@ -1001,6 +1009,7 @@ function clearPendingFiles(){
 function openEditPatient(p){
   editingPatientId = p ? p.id : null;
   $("edit-patient-title").textContent = p ? "تعديل بيانات العميل" : "عميل جديد";
+  $("f-visit-type").value=p?.registrationType||"";
   $("f-name").value=p?.name||""; $("f-phone").value=p?.phone||"";
   $("f-age").value=p?.age||""; $("f-gender").value=p?.gender||"";
   $("f-address").value=p?.address||""; $("f-job").value=p?.job||"";
@@ -1014,7 +1023,10 @@ function openEditPatient(p){
 async function savePatient(){
   const name=$("f-name").value.trim();
   if(!name){ alert("اكتب اسم العميل الأول"); return; }
+  const registrationType=$("f-visit-type").value;
+  if(!editingPatientId && !registrationType){ alert("اختار نوع التسجيل: جلسة أو كشف جديد + جلسة"); $("f-visit-type").focus(); return; }
   const val={
+    registrationType,
     name, phone:$("f-phone").value.trim(),
     age:$("f-age").value?Number($("f-age").value):null,
     gender:$("f-gender").value||"",
@@ -1062,6 +1074,8 @@ function renderPatient(){
   if(p.address) extra.push("العنوان: "+p.address);
   if(p.job) extra.push("الوظيفة: "+p.job);
   if(p.refDoc) extra.push("تحويل: "+p.refDoc);
+  if(p.registrationType==="session") extra.push("نوع التسجيل: جلسة");
+  if(p.registrationType==="exam-session") extra.push("نوع التسجيل: كشف جديد + جلسة");
   $("p-extra").textContent=extra.join(" • ");
   $("p-call").href=p.phone?("tel:"+p.phone):"#";
   const wa=normalizeWaPhone(p.phone);
