@@ -244,7 +244,7 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       <div class="g2" id="greet2"></div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="n" id="st-today">0</div><div class="l">عملاء النهاردة</div></div>
+      <div class="stat"><div class="n" id="st-today">0</div><div class="l">حضروا النهاردة</div></div>
       <div class="stat"><div class="n" id="st-sessions">0</div><div class="l">جلسات خلصت النهاردة</div></div>
       <div class="stat"><div class="n" id="st-total">0</div><div class="l">كل العملاء</div></div>
     </div>
@@ -256,9 +256,13 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       <ul class="plist" id="search-list"></ul>
     </div>
     <div id="home-today-wrap">
-      <div class="section-title">قايمة النهاردة</div>
+      <div class="section-title">حضور النهاردة</div>
+      <ul class="plist" id="attendance-today-list"></ul>
+      <div class="empty hidden" id="attendance-today-empty" style="padding:16px;">مفيش حضور متسجل للنهاردة</div>
+      <button class="btn secondary" id="btn-attendance-review" style="width:calc(100% - 32px);margin:8px 16px;">📅 مراجعة الحضور حسب التاريخ</button>
+      <div class="section-title">المواعيد المستحقة (النهاردة والمتأخرة)</div>
       <ul class="plist" id="today-list"></ul>
-      <div class="empty hidden" id="today-empty"><span class="ic">☕</span>مفيش عملاء النهاردة لسه</div>
+      <div class="empty hidden" id="today-empty"><span class="ic">☕</span>مفيش مواعيد مستحقة</div>
     </div>
     <div class="page">
       <button class="btn secondary" id="btn-all-patients">📋 كل العملاء</button>
@@ -357,7 +361,7 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       </div>
       <div class="stats" style="padding:12px 0 4px;">
         <div class="stat"><div class="n" id="repd-sessions">0</div><div class="l">جلسات اليوم</div></div>
-        <div class="stat"><div class="n" id="repd-clients">0</div><div class="l">عملاء اليوم</div></div>
+        <div class="stat"><div class="n" id="repd-clients">0</div><div class="l">حضور اليوم</div></div>
       </div>
       <div class="card" style="margin-top:12px;">
         <div class="rep-exp-head">
@@ -373,6 +377,10 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
         <div id="repd-exp-rows"></div>
         <div class="empty hidden" id="repd-exp-empty" style="padding:8px 0;">مفيش مصروفات في اليوم ده</div>
       </div>
+      <div class="section-title" style="padding-top:10px;">أسماء اللي حضروا اليوم ده</div>
+      <ul class="plist" id="repd-attendance-list" style="padding:0;"></ul>
+      <div class="empty hidden" id="repd-attendance-empty" style="padding:16px;">مفيش حضور متسجل في اليوم ده</div>
+      <div class="rep-note">كل عميل بيتحسب مرة واحدة في اليوم. الحضور بيظهر من تسجيل الحضور أو جلسة بتاريخ اليوم المختار، مش من الموعد أو المدفوعات.</div>
       <div class="section-title" style="padding-top:10px;">مدفوعات اليوم</div>
       <div id="repd-pay-rows"></div>
       <div class="empty hidden" id="repd-pay-empty">مفيش مدفوعات في اليوم ده</div>
@@ -392,7 +400,7 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
           <option value="session">جلسة</option>
           <option value="exam-session">كشف جديد + جلسة</option>
         </select>
-        <small id="f-visit-help" class="muted">نوع أول زيارة. الجلسات والمدفوعات بتتسجل من ملف العميل بعد الحفظ.</small>
+        <small id="f-visit-help" class="muted">نوع أول زيارة. لتسجيل الحضور اختار الخانة اللي تحت. الجلسات المكتملة والمدفوعات بتتسجل لوحدها من ملف العميل.</small>
       </label>
       <label class="fld">رقم التليفون
         <input id="f-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx">
@@ -442,6 +450,11 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
         </div>
         <input id="f-file-input" type="file" accept="image/*" multiple class="hidden">
         <div class="xgrid" id="f-file-grid"></div>
+      </div>
+      <div id="f-attendance-wrap">
+        <label class="fld"><span><input id="f-attended" type="checkbox" style="width:auto;"> سجّل حضور العميل ده مع الحفظ</span></label>
+        <label class="fld">تاريخ الحضور<input id="f-attendance-date" type="date"></label>
+        <div class="rep-note">الحضور بيتسجل بنوع التسجيل المختار، من غير إضافة جلسة مكتملة أو مبلغ.</div>
       </div>
       <button class="btn" id="btn-save-patient">حفظ</button>
     </div>
@@ -506,12 +519,26 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
     </div>
 
     <div class="card">
+      <h3>سجل الحضور 📅</h3>
+      <label class="fld">تاريخ الحضور<input id="a-date" type="date"></label>
+      <label class="fld">نوع الزيارة<select id="a-type">
+        <option value="">اختار نوع الزيارة</option><option value="session">جلسة</option><option value="exam-session">كشف جديد + جلسة</option>
+      </select></label>
+      <button class="btn" id="btn-save-attendance">سجّل / عدّل حضور اليوم المختار</button>
+      <div class="rep-note">كل عميل مرة واحدة في اليوم. ده تسجيل حضور فقط، مش جلسة مكتملة ولا دفعة. لحضور سابق اختار تاريخه.</div>
+      <div id="attendance-history"></div>
+    </div>
+    <div class="card">
       <h3>الجلسات 📝</h3>
       <button class="btn" id="btn-add-session">＋ سجّل جلسة النهاردة</button>
       <div id="session-form" class="hidden" style="margin-top:12px;">
         <label class="fld">التاريخ
           <input id="s-date" type="date">
         </label>
+        <label class="fld">نوع الزيارة<select id="s-type">
+          <option value="">اختار نوع الزيارة</option><option value="session">جلسة</option><option value="exam-session">كشف جديد + جلسة</option>
+        </select></label>
+        <div class="rep-note">حفظ الجلسة بيسجل حضور في تاريخها، من غير تكرار العميل في عدد الحضور.</div>
         <label class="fld">إيه اللي اتعمل في الجلسة؟
           <textarea id="s-work" placeholder="مثال: ألتراساوند + تمرينات إطالة"></textarea>
         </label>
@@ -777,7 +804,7 @@ function renderReportDay(){
   const expTotal=exps.reduce((a,x)=>a+(Number(x.amount)||0),0);
   $("repd-total").textContent=fmtMoney(total);
   $("repd-sessions").textContent=sess.length;
-  $("repd-clients").textContent=new Set(sess.map(s=>s.patientId)).size;
+  $("repd-clients").textContent=renderAttendanceList("repd-attendance-list","repd-attendance-empty",ds);
   $("repd-exp-total").textContent=fmtMoney(expTotal);
   const net=total-expTotal; const ne=$("repd-net"); ne.textContent=fmtMoney(net); ne.classList.toggle("neg",net<0);
   $("repd-exp-rows").innerHTML=exps.map(x=>
@@ -900,6 +927,41 @@ async function reloadAll(){
   xrays    = await dbAll("xrays");
   expenses = await dbAll("expenses");
 }
+function attendanceForDate(date){
+  const rows=new Map();
+  function add(pid,type,source){
+    const key=String(pid); let row=rows.get(key);
+    if(!row){ row={patientId:pid,types:new Set(),sources:new Set()}; rows.set(key,row); }
+    if(type) row.types.add(type); row.sources.add(source);
+  }
+  for(const p of patients) for(const a of (p.attendance||[])) if(a.date===date) add(p.id,a.visitType,'attendance');
+  for(const x of sessions) if(x.date===date) add(x.patientId,x.visitType,'session');
+  return [...rows.values()].map(r=>({...r,patient:patients.find(p=>String(p.id)===String(r.patientId))}));
+}
+function attendanceTypeText(types){
+  return [...types].map(t=>t==='exam-session'?'كشف جديد + جلسة':t==='session'?'جلسة':'نوع غير محدد').join(' / ')||'نوع الزيارة غير محدد (سجل قديم)';
+}
+function renderAttendanceList(listId,emptyId,date){
+  const rows=attendanceForDate(date).sort((a,b)=>(a.patient?.name||'').localeCompare(b.patient?.name||'','ar'));
+  $(listId).innerHTML=rows.map(r=>`<li ${r.patient?`data-pid="${r.patient.id}"`:''}><div class="avatar">✓</div><div class="pinfo"><div class="nm">${esc(r.patient?.name||'عميل محذوف')}</div><div class="sub">${esc(attendanceTypeText(r.types))}</div></div></li>`).join('');
+  $(emptyId).classList.toggle('hidden',rows.length>0); bindPatientRows($(listId));
+  return rows.length;
+}
+async function saveAttendance(){
+  const date=$('a-date').value,type=$('a-type').value;
+  if(!date||date>todayStr()){alert('اختار تاريخ حضور لحد النهاردة');return;}
+  if(!type){alert('اختار نوع الزيارة');return;}
+  const p=patients.find(p=>p.id===currentPatientId); if(!p)return;
+  const attendance=(p.attendance||[]).filter(a=>a.date!==date);
+  attendance.push({date,visitType:type,createdAt:new Date().toISOString()});
+  await dbPut('patients',{...p,attendance}); await reloadAll(); renderPatient();
+}
+async function removeAttendance(date){
+  if(!confirm('تمسح تسجيل الحضور ده؟ لو فيه جلسة بنفس التاريخ هيفضل الحضور ظاهر بسبب الجلسة.'))return;
+  const p=patients.find(p=>p.id===currentPatientId); if(!p)return;
+  await dbPut('patients',{...p,attendance:(p.attendance||[]).filter(a=>a.date!==date)});
+  await reloadAll();renderPatient();
+}
 const patientSessions = pid => sessions.filter(s=>s.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
 const patientPayments = pid => payments.filter(p=>p.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id);
 const patientFiles = (pid,kind) => xrays.filter(x=>x.patientId===pid && (x.kind||"xray")===kind).sort((a,b)=> b.id-a.id);
@@ -912,7 +974,7 @@ function renderHome(){
   const t=todayStr();
   const due = patients.filter(p=>p.nextDate && p.nextDate<=t);
   const doneToday = sessions.filter(s=>s.date===t);
-  $("st-today").textContent = due.length;
+  $("st-today").textContent = renderAttendanceList("attendance-today-list","attendance-today-empty",t);
   $("st-sessions").textContent = doneToday.length;
   $("st-total").textContent = patients.length;
 
@@ -1010,6 +1072,9 @@ function openEditPatient(p){
   editingPatientId = p ? p.id : null;
   $("edit-patient-title").textContent = p ? "تعديل بيانات العميل" : "عميل جديد";
   $("f-visit-type").value=p?.registrationType||"";
+  $("f-attendance-wrap").classList.toggle("hidden",!!p);
+  $("f-attended").checked=false;
+  $("f-attendance-date").value=todayStr(); $("f-attendance-date").max=todayStr();
   $("f-name").value=p?.name||""; $("f-phone").value=p?.phone||"";
   $("f-age").value=p?.age||""; $("f-gender").value=p?.gender||"";
   $("f-address").value=p?.address||""; $("f-job").value=p?.job||"";
@@ -1025,6 +1090,7 @@ async function savePatient(){
   if(!name){ alert("اكتب اسم العميل الأول"); return; }
   const registrationType=$("f-visit-type").value;
   if(!editingPatientId && !registrationType){ alert("اختار نوع التسجيل: جلسة أو كشف جديد + جلسة"); $("f-visit-type").focus(); return; }
+  if(!editingPatientId && $("f-attended").checked && (!$("f-attendance-date").value || $("f-attendance-date").value>todayStr())){alert("اختار تاريخ حضور لحد النهاردة");return;}
   const val={
     registrationType,
     name, phone:$("f-phone").value.trim(),
@@ -1045,6 +1111,7 @@ async function savePatient(){
     currentPatientId=editingPatientId;
   } else {
     val.createdAt=new Date().toISOString(); val.nextDate=null;
+    val.attendance=$("f-attended").checked?[{date:$("f-attendance-date").value,visitType:registrationType,createdAt:new Date().toISOString()}]:[];
     currentPatientId=await dbAdd("patients",val);
   }
   editingPatientId=null;
@@ -1083,6 +1150,14 @@ function renderPatient(){
   $("p-notes-view").classList.toggle("hidden",!p.notes);
   $("p-notes-view").textContent=p.notes?("📌 "+p.notes):"";
 
+  $("a-date").value=todayStr(); $("a-date").max=todayStr(); $("a-type").value="";
+  const explicit=p.attendance||[];
+  const dates=[...new Set([...explicit.map(a=>a.date),...patientSessions(p.id).map(x=>x.date)])].sort().reverse();
+  $("attendance-history").innerHTML=dates.map(date=>{
+    const row=attendanceForDate(date).find(r=>String(r.patientId)===String(p.id));
+    return `<div class="rep-row"><span>${esc(fmtDate(date))}<br><small>${esc(attendanceTypeText(row.types))}</small></span>${explicit.some(a=>a.date===date)?`<button class="xdel attendance-delete" data-date="${esc(date)}" aria-label="مسح تسجيل الحضور">✕</button>`:'<small>من سجل الجلسات</small>'}</div>`;
+  }).join('')||'<div class="rep-note">مفيش حضور متسجل لسه</div>';
+  $("attendance-history").querySelectorAll('.attendance-delete').forEach(b=>b.addEventListener('click',()=>removeAttendance(b.dataset.date)));
   const ss=patientSessions(p.id);
   const done=ss.length, total=p.totalSessions||0;
   $("p-prog-name").textContent=p.programType||"—";
@@ -1127,10 +1202,13 @@ function renderPatient(){
 /* ---------- Sessions ---------- */
 async function saveSession(){
   const date=$("s-date").value||todayStr();
+  const visitType=$("s-type").value;
+  if(!visitType){alert("اختار نوع الزيارة");return;}
+  if(date>todayStr()){alert("تاريخ الجلسة ماينفعش يكون في المستقبل");return;}
   const work=$("s-work").value.trim(), note=$("s-note").value.trim();
   if(!work && !note){ alert("اكتب اللي اتعمل في الجلسة على الأقل"); return; }
-  await dbAdd("sessions",{patientId:currentPatientId,date,work,note,createdAt:new Date().toISOString()});
-  $("s-work").value=""; $("s-note").value="";
+  await dbAdd("sessions",{patientId:currentPatientId,date,visitType,work,note,createdAt:new Date().toISOString()});
+  $("s-work").value=""; $("s-note").value=""; $("s-type").value="";
   await reloadAll(); renderPatient();
 }
 
@@ -1368,6 +1446,8 @@ function init(){
   $("search2").addEventListener("input",renderPatients);
   $("topbar-title").addEventListener("click",()=>{ if(navStack[navStack.length-1]==="home"){ show("settings"); } });
 
+  $("btn-attendance-review").addEventListener("click",()=>{ reportDay=new Date(); show("report"); setReportMode("day"); });
+  $("btn-save-attendance").addEventListener("click",saveAttendance);
   // Patient form
   $("btn-save-patient").addEventListener("click",savePatient);
 
@@ -1383,7 +1463,7 @@ function init(){
   });
   $("btn-add-session").addEventListener("click",()=>{
     $("session-form").classList.toggle("hidden");
-    $("s-date").value=todayStr();
+    $("s-date").value=todayStr(); $("s-date").max=todayStr(); $("s-type").value="";
   });
   $("btn-save-session").addEventListener("click",saveSession);
   $("btn-add-payment").addEventListener("click",()=>{
