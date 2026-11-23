@@ -550,8 +550,8 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       <div id="attendance-history"></div>
     </div>
     <div class="card">
-      <h3>الجلسات 📝</h3>
-      <button class="btn" id="btn-add-session">＋ سجّل جلسة النهاردة</button>
+      <h3>سجل الجلسات وأسعارها 📝</h3>
+      <button class="btn" id="btn-add-session">＋ سجّل جلسة وسعرها</button>
       <div id="session-form" class="hidden" style="margin-top:12px;">
         <label class="fld">التاريخ
           <input id="s-date" type="date">
@@ -559,14 +559,18 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
         <label class="fld">نوع الزيارة<select id="s-type">
           <option value="">اختار نوع الزيارة</option><option value="session">جلسة</option><option value="exam-session">كشف جديد + جلسة</option>
         </select></label>
+        <label class="fld">سعر الجلسة دي (ج)<select id="s-price">
+          <option value="">اختار سعر الجلسة دي</option><option value="50">50 جنيه</option><option value="100">100 جنيه</option><option value="150">150 جنيه</option><option value="200">200 جنيه</option><option value="250">250 جنيه</option><option value="300">300 جنيه</option><option value="350">350 جنيه</option><option value="400">400 جنيه</option><option value="450">450 جنيه</option><option value="500">500 جنيه</option></select></label>
+        <div class="rep-note">اختار سعر كل جلسة لوحدها، ممكن يختلف عن باقي الجلسات. السعر مش دفعة ومش بيغيّر سعر ملف العميل.</div>
         <div class="rep-note">حفظ الجلسة بيسجل حضور في تاريخها، من غير تكرار العميل في عدد الحضور.</div>
-        <label class="fld">إيه اللي اتعمل في الجلسة؟
+        <label class="fld">إيه اللي اتعمل في الجلسة؟ (اختياري)
           <textarea id="s-work" placeholder="مثال: ألتراساوند + تمرينات إطالة"></textarea>
         </label>
         <label class="fld">ملاحظات / تطور الحالة
           <textarea id="s-note" placeholder="مثال: الألم قل، المدى الحركي اتحسن"></textarea>
         </label>
         <button class="btn" id="btn-save-session">حفظ الجلسة</button>
+        <button class="btn gray" id="btn-cancel-session" style="margin-top:8px;">إلغاء</button>
       </div>
       <ul class="timeline" id="sessions-list" style="margin-top:14px;"></ul>
       <div class="empty hidden" id="sessions-empty" style="padding:16px;">مفيش جلسات متسجلة لسه</div>
@@ -1227,9 +1231,13 @@ function renderPatient(){
   for(const s of ss){
     sl.insertAdjacentHTML("beforeend",
       `<li><div class="d">${esc(fmtDate(s.date))}</div>
+       <div class="w">${esc(attendanceTypeText(new Set(s.visitType?[s.visitType]:[])))}</div>
+       <div class="w">سعر الجلسة: ${validVisitPrice(s.price)?fmtMoney(s.price):'غير مسجل (سجل قديم)'}</div>
+       <button class="btn secondary session-edit" data-id="${s.id}" style="margin:8px 0;">تعديل الجلسة وسعرها</button>
        ${s.work?`<div class="w">${esc(s.work)}</div>`:""}
        ${s.note?`<div class="n">${esc(s.note)}</div>`:""}</li>`);
   }
+  sl.querySelectorAll('.session-edit').forEach(b=>b.addEventListener('click',()=>openSessionForm(Number(b.dataset.id))));
   $("sessions-empty").classList.toggle("hidden", ss.length>0);
   $("session-form").classList.add("hidden");
 
@@ -1237,15 +1245,31 @@ function renderPatient(){
 }
 
 /* ---------- Sessions ---------- */
+let editingSessionId=null;
+function openSessionForm(id=null){
+  const s=id===null?null:sessions.find(x=>x.id===id&&x.patientId===currentPatientId);
+  if(id!==null&&!s) return;
+  editingSessionId=s?s.id:null;
+  $("s-date").value=s?s.date:todayStr(); $("s-date").max=todayStr();
+  $("s-type").value=s?.visitType||"";
+  $("s-price").value=validVisitPrice(s?.price)?String(s.price):"";
+  $("s-work").value=s?.work||""; $("s-note").value=s?.note||"";
+  $("btn-save-session").textContent=s?"حفظ تعديل الجلسة":"حفظ الجلسة";
+  $("session-form").classList.remove("hidden");
+  $("session-form").scrollIntoView({block:"nearest",behavior:"smooth"});
+}
 async function saveSession(){
+  const old=editingSessionId===null?null:sessions.find(x=>x.id===editingSessionId&&x.patientId===currentPatientId);
+  if(editingSessionId!==null&&!old) return;
   const date=$("s-date").value||todayStr();
   const visitType=$("s-type").value;
-  if(!visitType){alert("اختار نوع الزيارة");return;}
+  if(!visitType&&!old){alert("اختار نوع الزيارة");return;}
   if(date>todayStr()){alert("تاريخ الجلسة ماينفعش يكون في المستقبل");return;}
+  if(!validVisitPrice($("s-price").value)){alert("اختار سعر الجلسة دي من 50 لحد 500 جنيه");$("s-price").focus();return;}
   const work=$("s-work").value.trim(), note=$("s-note").value.trim();
-  if(!work && !note){ alert("اكتب اللي اتعمل في الجلسة على الأقل"); return; }
-  await dbAdd("sessions",{patientId:currentPatientId,date,visitType,work,note,createdAt:new Date().toISOString()});
-  $("s-work").value=""; $("s-note").value=""; $("s-type").value="";
+  const entry={...(old||{}),patientId:currentPatientId,date,visitType,price:Number($("s-price").value),work,note,createdAt:old?.createdAt||new Date().toISOString()};
+  if(old) await dbPut("sessions",entry); else await dbAdd("sessions",entry);
+  editingSessionId=null;
   await reloadAll(); renderPatient();
 }
 
@@ -1499,10 +1523,8 @@ function init(){
     const p=patients.find(x=>x.id===currentPatientId);
     if(p){ p.nextTime=ev.target.value||null; await dbPut("patients",p); }
   });
-  $("btn-add-session").addEventListener("click",()=>{
-    $("session-form").classList.toggle("hidden");
-    $("s-date").value=todayStr(); $("s-date").max=todayStr(); $("s-type").value="";
-  });
+  $("btn-add-session").addEventListener("click",()=>openSessionForm());
+  $("btn-cancel-session").addEventListener("click",()=>{editingSessionId=null;$("session-form").classList.add("hidden");});
   $("btn-save-session").addEventListener("click",saveSession);
   $("btn-add-payment").addEventListener("click",()=>{
     $("pay-form").classList.toggle("hidden");
