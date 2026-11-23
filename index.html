@@ -436,10 +436,27 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
         <label class="fld" style="flex:1;">عدد الجلسات
           <input id="f-total" type="number" inputmode="numeric" min="1" placeholder="10">
         </label>
-        <label class="fld" style="flex:1;">سعر الباكدج (ج)
-          <input id="f-price" type="number" inputmode="decimal" min="0" placeholder="0">
+        <label class="fld" style="flex:1;">سعر الزيارة الواحدة (ج)
+          <select id="f-visit-price" aria-describedby="f-price-help">
+            <option value="">اختار السعر</option>
+            <option value="50">50 جنيه</option>
+            <option value="100">100 جنيه</option>
+            <option value="150">150 جنيه</option>
+            <option value="200">200 جنيه</option>
+            <option value="250">250 جنيه</option>
+            <option value="300">300 جنيه</option>
+            <option value="350">350 جنيه</option>
+            <option value="400">400 جنيه</option>
+            <option value="450">450 جنيه</option>
+            <option value="500">500 جنيه</option>
+          </select>
         </label>
       </div>
+      <div id="f-price-help" class="rep-note">جلسة: 150 ج، كشف جديد + جلسة: 200 ج. تقدر تختار سعر تاني من القائمة. السعر للزيارة الواحدة، مش إجمالي باكدج ولا مبلغ مدفوع.</div>
+      <label class="fld hidden" id="f-legacy-package">سعر الباكدج القديم (ج)
+        <input id="f-price" type="number" inputmode="decimal" min="0" placeholder="0">
+        <small>للحفاظ على الحساب القديم. سعر الزيارة منفصل ومش بيغيّر رصيد الباكدج.</small>
+      </label>
       <label class="fld">ملاحظات
         <textarea id="f-notes" placeholder="أي حاجة مهمة عن الحالة"></textarea>
       </label>
@@ -497,9 +514,13 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
 
     <div class="card">
       <h3>الحساب 💰</h3>
-      <div class="money-row"><span>إجمالي الباكدج</span><span class="v" id="m-total">0 ج</span></div>
-      <div class="money-row"><span>المدفوع</span><span class="v green" id="m-paid">0 ج</span></div>
-      <div class="money-row"><span>الباقي</span><span class="v red" id="m-remain">0 ج</span></div>
+      <div class="money-row"><span>سعر الزيارة الواحدة</span><span class="v" id="m-visit-price">غير محدد</span></div>
+      <div id="m-legacy-package">
+        <div class="money-row"><span>إجمالي الباكدج القديم</span><span class="v" id="m-total">0 ج</span></div>
+        <div class="money-row"><span>الباقي من الباكدج القديم</span><span class="v red" id="m-remain">0 ج</span></div>
+      </div>
+      <div class="money-row"><span>المدفوع فعليًا</span><span class="v green" id="m-paid">0 ج</span></div>
+      <div class="rep-note" id="m-price-note">سعر الزيارة مش دفعة. الإيرادات بتتحسب من الدفعات المسجلة فقط.</div>
       <button class="btn secondary small" id="btn-add-payment">＋ سجّل دفعة</button>
       <div id="pay-form" class="hidden" style="margin-top:12px;">
         <div class="btnrow" style="gap:10px;">
@@ -1081,9 +1102,16 @@ function openEditPatient(p){
   $("f-refdoc").value=p?.refDoc||"";
   $("f-diag").value=p?.diagnosis||""; $("f-prog").value=p?.programType||"";
   $("f-total").value=p?.totalSessions||""; $("f-price").value=p?.packagePrice||"";
+  $("f-visit-price").value=validVisitPrice(p?.visitPrice)?String(p.visitPrice):"";
+  $("f-legacy-package").classList.toggle("hidden",!p || p.billingMode==="per-visit");
   $("f-notes").value=p?.notes||"";
   clearPendingFiles();
   show("edit-patient");
+}
+function validVisitPrice(v){ const n=Number(v); return n>=50 && n<=500 && n%50===0; }
+function setDefaultVisitPrice(){
+  const type=$("f-visit-type").value;
+  $("f-visit-price").value=type==="session"?"150":type==="exam-session"?"200":"";
 }
 async function savePatient(){
   const name=$("f-name").value.trim();
@@ -1091,15 +1119,17 @@ async function savePatient(){
   const registrationType=$("f-visit-type").value;
   if(!editingPatientId && !registrationType){ alert("اختار نوع التسجيل: جلسة أو كشف جديد + جلسة"); $("f-visit-type").focus(); return; }
   if(!editingPatientId && $("f-attended").checked && (!$("f-attendance-date").value || $("f-attendance-date").value>todayStr())){alert("اختار تاريخ حضور لحد النهاردة");return;}
+  const visitPrice=$("f-visit-price").value;
+  if((!editingPatientId || visitPrice) && !validVisitPrice(visitPrice)){alert("اختار سعر الزيارة من 50 لحد 500 جنيه");$("f-visit-price").focus();return;}
   const val={
     registrationType,
+    visitPrice:visitPrice?Number(visitPrice):null,
     name, phone:$("f-phone").value.trim(),
     age:$("f-age").value?Number($("f-age").value):null,
     gender:$("f-gender").value||"",
     diagnosis:$("f-diag").value.trim(),
     programType:$("f-prog").value.trim(),
     totalSessions:$("f-total").value?Number($("f-total").value):null,
-    packagePrice:$("f-price").value?Number($("f-price").value):0,
     notes:$("f-notes").value.trim(),
     address:$("f-address").value.trim(),
     job:$("f-job").value.trim(),
@@ -1107,9 +1137,11 @@ async function savePatient(){
   };
   if(editingPatientId){
     const old=patients.find(p=>p.id===editingPatientId)||{};
-    await dbPut("patients",{...old,...val,id:editingPatientId});
+    const legacy=old.billingMode!=="per-visit"?{packagePrice:$("f-price").value?Number($("f-price").value):0}:{};
+    await dbPut("patients",{...old,...val,...legacy,id:editingPatientId});
     currentPatientId=editingPatientId;
   } else {
+    val.billingMode="per-visit";
     val.createdAt=new Date().toISOString(); val.nextDate=null;
     val.attendance=$("f-attended").checked?[{date:$("f-attendance-date").value,visitType:registrationType,createdAt:new Date().toISOString()}]:[];
     currentPatientId=await dbAdd("patients",val);
@@ -1175,6 +1207,11 @@ function renderPatient(){
 
   const ps=patientPayments(p.id);
   const paid=ps.reduce((a,b)=>a+(Number(b.amount)||0),0);
+  $("m-visit-price").textContent=validVisitPrice(p.visitPrice)?fmtMoney(p.visitPrice):"غير محدد";
+  $("m-legacy-package").classList.toggle("hidden",p.billingMode==="per-visit");
+  $("m-price-note").textContent=p.billingMode==="per-visit"
+    ?"سعر الزيارة مش دفعة ولا إجمالي مستحق. الإيرادات بتتحسب من الدفعات المسجلة فقط؛ سجّل كل دفعة عند استلامها."
+    :"حساب الباكدج القديم محفوظ زي ما هو. سعر الزيارة منفصل؛ مفيش أسعار اتضافت للزيارات القديمة. الإيرادات من الدفعات فقط.";
   const totalPrice=Number(p.packagePrice)||0;
   $("m-total").textContent=fmtMoney(totalPrice);
   $("m-paid").textContent=fmtMoney(paid);
@@ -1450,6 +1487,7 @@ function init(){
   $("btn-save-attendance").addEventListener("click",saveAttendance);
   // Patient form
   $("btn-save-patient").addEventListener("click",savePatient);
+  $("f-visit-type").addEventListener("change",setDefaultVisitPrice);
 
   // Patient file
   $("p-edit").addEventListener("click",()=>openEditPatient(patients.find(p=>p.id===currentPatientId)));
