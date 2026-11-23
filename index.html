@@ -561,7 +561,7 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
         </select></label>
         <label class="fld">سعر الجلسة دي (ج)<select id="s-price">
           <option value="">اختار سعر الجلسة دي</option><option value="50">50 جنيه</option><option value="100">100 جنيه</option><option value="150">150 جنيه</option><option value="200">200 جنيه</option><option value="250">250 جنيه</option><option value="300">300 جنيه</option><option value="350">350 جنيه</option><option value="400">400 جنيه</option><option value="450">450 جنيه</option><option value="500">500 جنيه</option></select></label>
-        <div class="rep-note">اختار سعر كل جلسة لوحدها، ممكن يختلف عن باقي الجلسات. السعر مش دفعة ومش بيغيّر سعر ملف العميل.</div>
+        <div class="rep-note">اختار سعر كل جلسة لوحدها، ممكن يختلف عن باقي الجلسات. سعر الجلسة بيتسجّل كدفعة تلقائيًا في حساب العميل أول ما تحفظها، ومش بيغيّر سعر ملف العميل.</div>
         <div class="rep-note">حفظ الجلسة بيسجل حضور في تاريخها، من غير تكرار العميل في عدد الحضور.</div>
         <label class="fld">إيه اللي اتعمل في الجلسة؟ (اختياري)
           <textarea id="s-work" placeholder="مثال: ألتراساوند + تمرينات إطالة"></textarea>
@@ -1214,8 +1214,8 @@ function renderPatient(){
   $("m-visit-price").textContent=validVisitPrice(p.visitPrice)?fmtMoney(p.visitPrice):"غير محدد";
   $("m-legacy-package").classList.toggle("hidden",p.billingMode==="per-visit");
   $("m-price-note").textContent=p.billingMode==="per-visit"
-    ?"سعر الزيارة مش دفعة ولا إجمالي مستحق. الإيرادات بتتحسب من الدفعات المسجلة فقط؛ سجّل كل دفعة عند استلامها."
-    :"حساب الباكدج القديم محفوظ زي ما هو. سعر الزيارة منفصل؛ مفيش أسعار اتضافت للزيارات القديمة. الإيرادات من الدفعات فقط.";
+    ?"سعر الزيارة مش دفعة ولا إجمالي مستحق. سعر كل جلسة بتسجّلها بيتضاف تلقائيًا كدفعة في سجل الدفعات، وتقدر تسجّل أي دفعة تانية من «سجّل دفعة»."
+    :"حساب الباكدج القديم محفوظ زي ما هو. سعر الزيارة منفصل؛ مفيش أسعار اتضافت للزيارات القديمة. الجلسات الجديدة اللي بتسجّلها بسعرها بتتضاف تلقائيًا كدفعات.";
   const totalPrice=Number(p.packagePrice)||0;
   $("m-total").textContent=fmtMoney(totalPrice);
   $("m-paid").textContent=fmtMoney(paid);
@@ -1233,6 +1233,7 @@ function renderPatient(){
       `<li><div class="d">${esc(fmtDate(s.date))}</div>
        <div class="w">${esc(attendanceTypeText(new Set(s.visitType?[s.visitType]:[])))}</div>
        <div class="w">سعر الجلسة: ${validVisitPrice(s.price)?fmtMoney(s.price):'غير مسجل (سجل قديم)'}</div>
+       ${payments.some(pay=>pay.sessionId===s.id)?'<div class="w">💰 اتسجّلت كدفعة تلقائيًا في الحساب</div>':''}
        <button class="btn secondary session-edit" data-id="${s.id}" style="margin:8px 0;">تعديل الجلسة وسعرها</button>
        ${s.work?`<div class="w">${esc(s.work)}</div>`:""}
        ${s.note?`<div class="n">${esc(s.note)}</div>`:""}</li>`);
@@ -1258,7 +1259,21 @@ function openSessionForm(id=null){
   $("session-form").classList.remove("hidden");
   $("session-form").scrollIntoView({block:"nearest",behavior:"smooth"});
 }
+let savingSession=false;
+const AUTO_PAY_NOTE="قيمة جلسة — اتسجّلت تلقائيًا مع الجلسة";
+function dbSaveSessionWithPayment(entry,payment){
+  return new Promise((res,rej)=>{
+    const t=db.transaction(["sessions","payments"],"readwrite");
+    const ss=t.objectStore("sessions"), ps=t.objectStore("payments");
+    const rq=entry.id?ss.put(entry):ss.add(entry);
+    rq.onsuccess=()=>{ payment.sessionId=rq.result; if(payment.id) ps.put(payment); else ps.add(payment); };
+    t.oncomplete=()=>res(rq.result);
+    t.onerror=e=>rej(e.target.error||t.error);
+    t.onabort=e=>rej(e.target.error||t.error);
+  });
+}
 async function saveSession(){
+  if(savingSession) return;
   const old=editingSessionId===null?null:sessions.find(x=>x.id===editingSessionId&&x.patientId===currentPatientId);
   if(editingSessionId!==null&&!old) return;
   const date=$("s-date").value||todayStr();
@@ -1266,11 +1281,24 @@ async function saveSession(){
   if(!visitType&&!old){alert("اختار نوع الزيارة");return;}
   if(date>todayStr()){alert("تاريخ الجلسة ماينفعش يكون في المستقبل");return;}
   if(!validVisitPrice($("s-price").value)){alert("اختار سعر الجلسة دي من 50 لحد 500 جنيه");$("s-price").focus();return;}
+  const newPrice=Number($("s-price").value);
   const work=$("s-work").value.trim(), note=$("s-note").value.trim();
-  const entry={...(old||{}),patientId:currentPatientId,date,visitType,price:Number($("s-price").value),work,note,createdAt:old?.createdAt||new Date().toISOString()};
-  if(old) await dbPut("sessions",entry); else await dbAdd("sessions",entry);
-  editingSessionId=null;
-  await reloadAll(); renderPatient();
+  const linked=old?payments.find(p=>p.sessionId===old.id&&String(p.patientId)===String(currentPatientId)):null;
+  if(old&&linked&&(Number(linked.amount)!==newPrice||linked.date!==date)){
+    if(!confirm(`الجلسة دي ليها دفعة مسجلة تلقائيًا (${fmtMoney(linked.amount)}). حفظ التعديل هيحدّث الدفعة دي لـ ${fmtMoney(newPrice)}. لو مش عايز تغيّر الدفعة اضغط إلغاء، ومش هيتحفظ أي تعديل.`)) return;
+  }
+  if(old&&!linked){
+    if(!confirm(`الجلسة دي مفيهاش دفعة مسجلة. حفظها بسعر ${fmtMoney(newPrice)} هيسجّل دفعة تلقائية بنفس المبلغ بتاريخ الجلسة. لو مش عايز الدفعة اضغط إلغاء، ومش هيتحفظ أي تعديل.`)) return;
+  }
+  savingSession=true;
+  try{
+    const entry={...(old||{}),patientId:currentPatientId,date,visitType,price:newPrice,work,note,createdAt:old?.createdAt||new Date().toISOString()};
+    const payment=linked?{...linked,amount:newPrice,date,note:AUTO_PAY_NOTE}:{patientId:currentPatientId,amount:newPrice,date,note:AUTO_PAY_NOTE,auto:true};
+    await dbSaveSessionWithPayment(entry,payment);
+    editingSessionId=null;
+    await reloadAll(); renderPatient();
+  }catch(e){ alert("مش قدرت أحفظ الجلسة ودفعتها، حاول تاني"); }
+  finally{ savingSession=false; }
 }
 
 /* ---------- Payments ---------- */
