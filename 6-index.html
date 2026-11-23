@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0e9488">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="مركز النيل">
+<title>مركز النيل - سجل العملاء</title>
+<style>
+:root{
+  --teal:#0e9488; --teal-dark:#0b7a70; --teal-light:#e0f5f3;
+  --bg:#f3f5f7; --card:#ffffff; --ink:#1c2430; --muted:#6b7684;
+  --green:#16a34a; --green-bg:#e7f7ec;
+  --amber:#b45309; --amber-bg:#fdf1e0;
+  --red:#dc2626; --red-bg:#fdeaea;
+  --gray-bg:#eef1f4;
+  --radius:16px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); font-size:16px; line-height:1.6;
+}
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;background:var(--bg);padding-bottom:40px;}
+.hidden{display:none !important;}
+
+/* ===== Top bar ===== */
+.topbar{
+  position:sticky;top:0;z-index:20;background:var(--teal);color:#fff;
+  padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
+.topbar .title{font-size:18px;font-weight:700;flex:1;text-align:center;}
+.topbar button{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:15px;cursor:pointer;font-family:inherit;}
+.topbar button:active{background:rgba(255,255,255,.32);}
+.topbar .spacer{width:44px;}
+
+/* ===== Generic ===== */
+.page{padding:16px;}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.card h3{margin:0 0 10px;font-size:16px;color:var(--teal-dark);}
+.btn{
+  display:block;width:100%;border:none;border-radius:14px;padding:14px;
+  font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;
+  background:var(--teal);color:#fff;margin-top:10px;text-decoration:none;
+}
+.btn:active{background:var(--teal-dark);}
+.btn.secondary{background:var(--teal-light);color:var(--teal-dark);}
+.btn.secondary:active{background:#c8ece8;}
+.btn.danger{background:var(--red-bg);color:var(--red);}
+.btn.gray{background:var(--gray-bg);color:var(--ink);}
+.btn.small{width:auto;display:inline-block;padding:8px 16px;font-size:14px;margin-top:0;}
+.btnrow{display:flex;gap:10px;}
+.btnrow .btn{margin-top:10px;}
+
+label.fld{display:block;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--muted);}
+label.fld input,label.fld select,label.fld textarea{
+  display:block;width:100%;margin-top:5px;padding:12px;border:1.5px solid #dde3e9;border-radius:12px;
+  font-size:16px;font-family:inherit;background:#fbfcfd;color:var(--ink);
+}
+label.fld textarea{min-height:80px;resize:vertical;}
+label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:none;border-color:var(--teal);}
+.hint{font-size:13px;color:var(--muted);margin-top:6px;}
+.muted{color:var(--muted);}
+.big{font-size:22px;font-weight:800;}
+.center{text-align:center;}
+
+/* ===== Lock screen ===== */
+#view-lock{background:linear-gradient(180deg,var(--teal) 0%,#0a6b62 100%);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.lockcard{background:#fff;border-radius:22px;padding:28px 22px;width:100%;max-width:340px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+.lockcard .logo{font-size:44px;}
+.lockcard h1{font-size:20px;margin:8px 0 2px;color:var(--teal-dark);}
+.lockcard p{font-size:14px;color:var(--muted);margin:4px 0 16px;}
+#pin-dots{display:flex;justify-content:center;gap:12px;margin:10px 0 18px;direction:ltr;}
+#pin-dots span{width:16px;height:16px;border-radius:50%;border:2px solid var(--teal);background:#fff;}
+#pin-dots span.on{background:var(--teal);}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;direction:ltr;}
+.pinpad button{
+  border:none;background:var(--gray-bg);border-radius:14px;padding:14px 0;font-size:22px;font-weight:700;
+  cursor:pointer;font-family:inherit;color:var(--ink);
+}
+.pinpad button:active{background:#dbe2e8;}
+#lock-error{color:var(--red);font-size:14px;min-height:20px;margin-top:8px;}
+#lock-forgot{background:none;border:none;color:var(--muted);font-size:13px;margin-top:14px;text-decoration:underline;cursor:pointer;font-family:inherit;}
+
+/* ===== Home ===== */
+.greet{padding:18px 16px 6px;}
+.greet .g1{font-size:20px;font-weight:800;}
+.greet .g2{font-size:14px;color:var(--muted);}
+.stats{display:flex;gap:10px;padding:10px 16px 4px;}
+.stat{flex:1;background:var(--card);border-radius:var(--radius);padding:12px 8px;text-align:center;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.stat .n{font-size:24px;font-weight:800;color:var(--teal);}
+.stat .l{font-size:12px;color:var(--muted);}
+.searchbox{padding:10px 16px;}
+.searchbox input{
+  width:100%;padding:13px 16px;border:1.5px solid #dde3e9;border-radius:14px;font-size:16px;
+  font-family:inherit;background:#fff;
+}
+.searchbox input:focus{outline:none;border-color:var(--teal);}
+.section-title{padding:14px 16px 6px;font-size:15px;font-weight:700;color:var(--muted);}
+
+.plist{list-style:none;margin:0;padding:0 16px;}
+.plist li{
+  background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(20,30,40,.06);cursor:pointer;
+}
+.plist li:active{background:#f0faf9;}
+.avatar{
+  width:46px;height:46px;border-radius:50%;background:var(--teal-light);color:var(--teal-dark);
+  display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0;
+}
+.pinfo{flex:1;min-width:0;}
+.pinfo .nm{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pinfo .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chip{
+  font-size:12px;font-weight:700;border-radius:20px;padding:4px 10px;flex-shrink:0;white-space:nowrap;
+}
+.chip.wait{background:var(--amber-bg);color:var(--amber);}
+.chip.done{background:var(--green-bg);color:var(--green);}
+.chip.late{background:var(--red-bg);color:var(--red);}
+.chip.gray{background:var(--gray-bg);color:var(--muted);}
+
+.empty{
+  text-align:center;color:var(--muted);padding:36px 24px;font-size:15px;
+}
+.empty .ic{font-size:40px;display:block;margin-bottom:8px;}
+
+/* ===== Patient file ===== */
+.phead{display:flex;align-items:center;gap:14px;}
+.phead .avatar{width:58px;height:58px;font-size:26px;}
+.phead .nm{font-size:20px;font-weight:800;}
+.phead .meta{font-size:14px;color:var(--muted);}
+.iconbtns{display:flex;gap:10px;margin-top:12px;}
+.iconbtns a,.iconbtns button{
+  flex:1;text-align:center;background:var(--gray-bg);border:none;border-radius:12px;padding:10px;
+  font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;text-decoration:none;font-family:inherit;
+}
+.iconbtns a:active,.iconbtns button:active{background:#dbe2e8;}
+.progress-wrap{background:var(--gray-bg);border-radius:10px;height:12px;overflow:hidden;margin:8px 0 4px;direction:ltr;}
+.progress-bar{height:100%;background:var(--teal);border-radius:10px;transition:width .3s;}
+.money-row{display:flex;justify-content:space-between;font-size:15px;padding:5px 0;}
+.money-row .v{font-weight:800;}
+.money-row .v.green{color:var(--green);}
+.money-row .v.red{color:var(--red);}
+
+.timeline{list-style:none;margin:0;padding:0;}
+.timeline li{
+  border-right:3px solid var(--teal-light);padding:4px 14px 14px 4px;margin-right:6px;position:relative;
+}
+.timeline li::before{
+  content:"";position:absolute;right:-8px;top:8px;width:11px;height:11px;border-radius:50%;
+  background:var(--teal);border:2px solid #fff;box-shadow:0 0 0 2px var(--teal-light);
+}
+.timeline .d{font-size:13px;font-weight:700;color:var(--teal-dark);}
+.timeline .w{font-size:15px;margin-top:2px;}
+.timeline .n{font-size:13px;color:var(--muted);margin-top:2px;}
+
+.xgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.xgrid .thumb{
+  aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--gray-bg);cursor:pointer;border:none;padding:0;
+}
+.xgrid .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.xviewer{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:60;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:16px;
+}
+.xviewer img{max-width:100%;max-height:76vh;border-radius:8px;}
+.xviewer .row{display:flex;gap:12px;margin-top:16px;}
+.xviewer button{border:none;border-radius:12px;padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+.xviewer .close{background:#fff;color:#111;}
+.xviewer .del{background:var(--red);color:#fff;}
+
+.notice{
+  background:#fff8e6;border:1.5px solid #f0d98a;border-radius:14px;padding:12px 14px;font-size:13.5px;
+  color:#7a5b00;margin-bottom:14px;
+}
+.fab{
+  position:fixed;bottom:calc(env(safe-area-inset-bottom, 0px) + 18px);left:50%;transform:translateX(-50%);
+  z-index:30;
+}
+.fab button{
+  background:var(--teal);color:#fff;border:none;border-radius:30px;padding:15px 28px;font-size:16px;
+  font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(14,148,136,.45);font-family:inherit;
+}
+.fab button:active{background:var(--teal-dark);}
+.month-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px 0 10px;}
+.mlabel{font-weight:800;font-size:17px;}
+#repd-picker{display:block;width:100%;margin:8px 0 0;padding:10px 12px;border:1.5px solid #dde3e9;border-radius:12px;font-size:15px;font-family:inherit;background:var(--card);color:var(--ink);text-align:center;}
+.mbtn{background:var(--card);border:none;border-radius:10px;padding:9px 12px;font-family:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.mbtn:disabled{opacity:.4;cursor:default;}
+.rep-big{font-size:34px;font-weight:800;color:var(--green);margin:2px 0 8px;}
+.rep-big-label{font-size:14px;color:var(--muted);font-weight:600;}
+.rep-row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:10px;padding:11px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(20,30,40,.07);font-size:14px;}
+.rep-row .v{font-weight:800;color:var(--green);}
+.rep-note{font-size:12px;color:var(--muted);text-align:center;padding:6px 0 18px;}
+.rep-exp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.rep-exp-total{font-size:24px;font-weight:800;color:#dc2626;}
+#rep-net{color:var(--green);}
+#rep-net.neg{color:#dc2626;}
+#repd-net{color:var(--green);}
+#repd-net.neg{color:#dc2626;}
+.rep-row .v.red{color:#dc2626;}
+.xdel{background:none;border:none;color:#dc2626;font-size:15px;cursor:pointer;font-family:inherit;padding:0;margin-right:8px;}
+.row2{display:flex;gap:10px;}
+.row2>*{flex:1;}
+.seg{display:flex;gap:6px;background:var(--card);border-radius:12px;padding:4px;margin-top:14px;box-shadow:0 1px 3px rgba(20,30,40,.07);}
+.segbtn{flex:1;border:none;background:transparent;border-radius:9px;padding:9px;font-family:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;}
+.segbtn.on{background:var(--teal);color:#fff;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= LOCK ================= -->
+  <div id="view-lock" class="hidden">
+    <div class="lockcard">
+      <div class="logo">🩺</div>
+      <h1>مركز النيل</h1>
+      <p id="lock-sub">ادخل رقمك السري</p>
+      <div id="pin-dots"><span></span><span></span><span></span><span></span></div>
+      <div class="pinpad" id="pinpad"></div>
+      <div id="lock-error"></div>
+      <button id="lock-forgot" class="hidden">نسيت الرقم؟</button>
+      <button id="lock-cancel" class="hidden" style="display:block;margin:10px auto 0;background:none;border:none;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit;">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- ================= TOP BAR ================= -->
+  <div id="topbar" class="topbar hidden">
+    <button id="btn-back" class="hidden">رجوع →</button>
+    <div class="spacer hidden" id="topbar-spacer"></div>
+    <div class="title" id="topbar-title">مركز النيل</div>
+    <button id="btn-lock-now" title="اقفل">🔒</button>
+  </div>
+
+  <!-- ================= HOME ================= -->
+  <div id="view-home" class="hidden">
+    <div class="greet">
+      <div class="g1" id="greet1">صباح الخير يا دكتور 👋</div>
+      <div class="g2" id="greet2"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="st-today">0</div><div class="l">حضروا النهاردة</div></div>
+      <div class="stat"><div class="n" id="st-sessions">0</div><div class="l">جلسات خلصت النهاردة</div></div>
+      <div class="stat"><div class="n" id="st-total">0</div><div class="l">كل العملاء</div></div>
+    </div>
+    <div class="searchbox">
+      <input id="search" type="search" placeholder="🔍 ابحث بالاسم أو رقم التليفون">
+    </div>
+    <div id="home-search-results" class="hidden">
+      <div class="section-title">نتايج البحث</div>
+      <ul class="plist" id="search-list"></ul>
+    </div>
+    <div id="home-today-wrap">
+      <div class="section-title">حضور النهاردة</div>
+      <ul class="plist" id="attendance-today-list"></ul>
+      <div class="empty hidden" id="attendance-today-empty" style="padding:16px;">مفيش حضور متسجل للنهاردة</div>
+      <button class="btn secondary" id="btn-attendance-review" style="width:calc(100% - 32px);margin:8px 16px;">📅 مراجعة الحضور حسب التاريخ</button>
+      <div class="section-title">المواعيد المستحقة (النهاردة والمتأخرة)</div>
+      <ul class="plist" id="today-list"></ul>
+      <div class="empty hidden" id="today-empty"><span class="ic">☕</span>مفيش مواعيد مستحقة</div>
+    </div>
+    <div class="page">
+      <button class="btn secondary" id="btn-all-patients">📋 كل العملاء</button>
+      <button class="btn secondary" id="btn-report">📊 تقرير الشهر</button>
+      <button class="btn gray" id="btn-settings">⚙️ الإعدادات والنسخة الاحتياطية</button>
+    </div>
+    <div class="fab"><button id="btn-new-patient">＋ عميل جديد</button></div>
+  </div>
+
+  <!-- ================= ALL PATIENTS ================= -->
+  <div id="view-patients" class="hidden">
+    <div class="searchbox" style="padding-top:16px;">
+      <input id="search2" type="search" placeholder="🔍 ابحث بالاسم أو رقم التليفون">
+    </div>
+    <ul class="plist" id="patients-list"></ul>
+    <div class="empty hidden" id="patients-empty"><span class="ic">🗂️</span>لسه مفيش عملاء متسجلين.<br>دوس "＋ عميل جديد" وابدأ.</div>
+    <div class="fab"><button id="btn-new-patient2">＋ عميل جديد</button></div>
+  </div>
+
+  <!-- ================= MONTHLY REPORT ================= -->
+  <div id="view-report" class="hidden page">
+    <div class="seg">
+      <button id="seg-month" class="segbtn on">شهري</button>
+      <button id="seg-day" class="segbtn">يومي</button>
+    </div>
+    <div id="report-month-view">
+    <div class="month-nav">
+      <button id="rep-prev" class="mbtn">الشهر اللي فات</button>
+      <div class="mlabel" id="report-month-label"></div>
+      <button id="rep-next" class="mbtn">الشهر الجاي</button>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="rep-big-label">إيرادات الشهر</div>
+      <div class="rep-big" id="rep-total">0 ج</div>
+    </div>
+    <div class="stats" style="padding:12px 0 4px;">
+      <div class="stat"><div class="n" id="rep-sessions">0</div><div class="l">جلسة الشهر ده</div></div>
+      <div class="stat"><div class="n" id="rep-clients">0</div><div class="l">عميل حضر</div></div>
+      <div class="stat"><div class="n" id="rep-new">0</div><div class="l">كشف جديد</div></div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="rep-exp-head">
+        <div>
+          <div class="rep-big-label">مصروفات الشهر</div>
+          <div class="rep-exp-total" id="rep-exp-total">0 ج</div>
+        </div>
+        <div style="text-align:left;">
+          <div class="rep-big-label">صافي الشهر</div>
+          <div class="rep-exp-total" id="rep-net">0 ج</div>
+        </div>
+      </div>
+      <div id="rep-exp-rows"></div>
+      <div class="empty hidden" id="rep-exp-empty" style="padding:8px 0;">مفيش مصروفات مسجلة في الشهر ده</div>
+      <button class="btn secondary" id="btn-add-expense">＋ سجّل مصروف</button>
+      <div id="exp-form" class="hidden" style="margin-top:10px;">
+        <label class="fld">البند
+          <select id="exp-cat">
+            <option>إيجار</option>
+            <option>سكرتيرة</option>
+            <option>ضرائب</option>
+            <option>أخرى</option>
+          </select>
+        </label>
+        <label class="fld">تفاصيل (اختياري)
+          <input id="exp-note" type="text" placeholder="مثال: مستلزمات عيادة">
+        </label>
+        <div class="row2">
+          <label class="fld">المبلغ
+            <input id="exp-amount" type="number" inputmode="decimal" min="0" placeholder="0">
+          </label>
+          <label class="fld">التاريخ
+            <input id="exp-date" type="date">
+          </label>
+        </div>
+        <button class="btn" id="btn-save-expense">حفظ المصروف</button>
+        <button class="btn gray" id="btn-cancel-expense">إلغاء</button>
+      </div>
+    </div>
+    <div class="section-title" style="padding-top:10px;">تفصيلة لكل عميل</div>
+    <div id="rep-rows"></div>
+    <div class="empty hidden" id="rep-empty"><span class="ic">📭</span>مفيش جلسات ولا دفعات في الشهر ده</div>
+    <div class="rep-note">الحسبة على تاريخ كل جلسة وكل دفعة.</div>
+    <div class="section-title" style="padding-top:10px;">إيراد كل يوم</div>
+    <div id="rep-days"></div>
+    </div>
+    <div id="report-day-view" class="hidden">
+      <div class="month-nav">
+        <button id="repd-prev" class="mbtn">اليوم اللي فات</button>
+        <div class="mlabel" id="repd-label"></div>
+        <button id="repd-next" class="mbtn">اليوم الجاي</button>
+      </div>
+      <input type="date" id="repd-picker" aria-label="اختار يوم">
+      <div class="card" style="text-align:center;">
+        <div class="rep-big-label">إيرادات اليوم</div>
+        <div class="rep-big" id="repd-total">0 ج</div>
+      </div>
+      <div class="stats" style="padding:12px 0 4px;">
+        <div class="stat"><div class="n" id="repd-sessions">0</div><div class="l">جلسات اليوم</div></div>
+        <div class="stat"><div class="n" id="repd-clients">0</div><div class="l">حضور اليوم</div></div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="rep-exp-head">
+          <div>
+            <div class="rep-big-label">مصروفات اليوم</div>
+            <div class="rep-exp-total" id="repd-exp-total">0 ج</div>
+          </div>
+          <div style="text-align:left;">
+            <div class="rep-big-label">صافي اليوم</div>
+            <div class="rep-exp-total" id="repd-net">0 ج</div>
+          </div>
+        </div>
+        <div id="repd-exp-rows"></div>
+        <div class="empty hidden" id="repd-exp-empty" style="padding:8px 0;">مفيش مصروفات في اليوم ده</div>
+      </div>
+      <div class="section-title" style="padding-top:10px;">أسماء اللي حضروا اليوم ده</div>
+      <ul class="plist" id="repd-attendance-list" style="padding:0;"></ul>
+      <div class="empty hidden" id="repd-attendance-empty" style="padding:16px;">مفيش حضور متسجل في اليوم ده</div>
+      <div class="rep-note">كل عميل بيتحسب مرة واحدة في اليوم. الحضور بيظهر من تسجيل الحضور أو جلسة بتاريخ اليوم المختار، مش من الموعد أو المدفوعات.</div>
+      <div class="section-title" style="padding-top:10px;">مدفوعات اليوم</div>
+      <div id="repd-pay-rows"></div>
+      <div class="empty hidden" id="repd-pay-empty">مفيش مدفوعات في اليوم ده</div>
+    </div>
+  </div>
+
+  <!-- ================= ADD / EDIT PATIENT ================= -->
+  <div id="view-edit-patient" class="hidden page">
+    <div class="card">
+      <h3 id="edit-patient-title">عميل جديد</h3>
+      <label class="fld">الاسم *
+        <input id="f-name" type="text" placeholder="اسم العميل">
+      </label>
+      <label class="fld">نوع التسجيل *
+        <select id="f-visit-type" aria-describedby="f-visit-help">
+          <option value="">اختار نوع التسجيل</option>
+          <option value="session">جلسة</option>
+          <option value="exam-session">كشف جديد + جلسة</option>
+        </select>
+        <small id="f-visit-help" class="muted">نوع أول زيارة. لتسجيل الحضور اختار الخانة اللي تحت. الجلسات المكتملة والمدفوعات بتتسجل لوحدها من ملف العميل.</small>
+      </label>
+      <label class="fld">رقم التليفون
+        <input id="f-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx">
+      </label>
+      <div class="btnrow" style="gap:10px;">
+        <label class="fld" style="flex:1;">السن
+          <input id="f-age" type="number" inputmode="numeric" min="0" max="120" placeholder="—">
+        </label>
+        <label class="fld" style="flex:1;">النوع
+          <select id="f-gender">
+            <option value="">—</option>
+            <option value="ذكر">ذكر</option>
+            <option value="أنثى">أنثى</option>
+          </select>
+        </label>
+      </div>
+      <label class="fld">العنوان
+        <input id="f-address" type="text" placeholder="مثال: كفر الشيخ، شارع الجمهورية">
+      </label>
+      <label class="fld">الوظيفة
+        <input id="f-job" type="text" placeholder="مثال: موظف">
+      </label>
+      <label class="fld">تحويل الدكتور
+        <input id="f-refdoc" type="text" placeholder="اسم الدكتور اللي حوّل الحالة">
+      </label>
+      <label class="fld">التشخيص
+        <input id="f-diag" type="text" placeholder="مثال: آلم أسفل الضهر">
+      </label>
+      <label class="fld">نوع البرنامج العلاجي
+        <input id="f-prog" type="text" placeholder="مثال: تأهيل ركبة">
+      </label>
+      <div class="btnrow" style="gap:10px;">
+        <label class="fld" style="flex:1;">عدد الجلسات
+          <input id="f-total" type="number" inputmode="numeric" min="1" placeholder="10">
+        </label>
+        <label class="fld" style="flex:1;">سعر الزيارة الواحدة (ج)
+          <select id="f-visit-price" aria-describedby="f-price-help">
+            <option value="">اختار السعر</option>
+            <option value="50">50 جنيه</option>
+            <option value="100">100 جنيه</option>
+            <option value="150">150 جنيه</option>
+            <option value="200">200 جنيه</option>
+            <option value="250">250 جنيه</option>
+            <option value="300">300 جنيه</option>
+            <option value="350">350 جنيه</option>
+            <option value="400">400 جنيه</option>
+            <option value="450">450 جنيه</option>
+            <option value="500">500 جنيه</option>
+          </select>
+        </label>
+      </div>
+      <div id="f-price-help" class="rep-note">جلسة: 150 ج، كشف جديد + جلسة: 200 ج. تقدر تختار سعر تاني من القائمة. السعر للزيارة الواحدة، مش إجمالي باكدج ولا مبلغ مدفوع.</div>
+      <label class="fld hidden" id="f-legacy-package">سعر الباكدج القديم (ج)
+        <input id="f-price" type="number" inputmode="decimal" min="0" placeholder="0">
+        <small>للحفاظ على الحساب القديم. سعر الزيارة منفصل ومش بيغيّر رصيد الباكدج.</small>
+      </label>
+      <label class="fld">ملاحظات
+        <textarea id="f-notes" placeholder="أي حاجة مهمة عن الحالة"></textarea>
+      </label>
+      <div class="fld" style="margin-bottom:6px;">أشعة وتحاليل (اختياري — بتتحفظ مع العميل)
+        <div class="btnrow" style="gap:8px;">
+          <button type="button" class="btn secondary" id="btn-f-xray" style="flex:1;">🩻 أشعة</button>
+          <button type="button" class="btn secondary" id="btn-f-lab" style="flex:1;">🧪 تحاليل</button>
+        </div>
+        <input id="f-file-input" type="file" accept="image/*" multiple class="hidden">
+        <div class="xgrid" id="f-file-grid"></div>
+      </div>
+      <div id="f-attendance-wrap">
+        <label class="fld"><span><input id="f-attended" type="checkbox" style="width:auto;"> سجّل حضور العميل ده مع الحفظ</span></label>
+        <label class="fld">تاريخ الحضور<input id="f-attendance-date" type="date"></label>
+        <div class="rep-note">الحضور بيتسجل بنوع التسجيل المختار، من غير إضافة جلسة مكتملة أو مبلغ.</div>
+      </div>
+      <button class="btn" id="btn-save-patient">حفظ</button>
+    </div>
+  </div>
+
+  <!-- ================= PATIENT FILE ================= -->
+  <div id="view-patient" class="hidden page">
+    <div class="card">
+      <div class="phead">
+        <div class="avatar" id="p-avatar">؟</div>
+        <div style="flex:1;min-width:0;">
+          <div class="nm" id="p-name"></div>
+          <div class="meta" id="p-meta"></div>
+          <div class="meta" id="p-diag"></div>
+          <div class="meta" id="p-extra"></div>
+        </div>
+      </div>
+      <div class="iconbtns">
+        <a id="p-call" href="#">📞 اتصال</a>
+        <a id="p-wa" href="#" target="_blank" rel="noopener">💬 واتساب</a>
+        <button id="p-edit">✏️ تعديل</button>
+      </div>
+      <div class="hint hidden" id="p-notes-view" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>البرنامج العلاجي</h3>
+      <div id="p-prog-name" style="font-weight:700;"></div>
+      <div class="progress-wrap"><div class="progress-bar" id="p-progbar" style="width:0%"></div></div>
+      <div class="hint" id="p-prog-text"></div>
+      <div class="btnrow" style="gap:10px;margin-top:12px;">
+        <label class="fld" style="flex:1;">📅 الجلسة الجاية
+          <input id="p-nextdate" type="date">
+        </label>
+        <label class="fld" style="flex:1;">🕐 الساعة
+          <input id="p-nexttime" type="time">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>الحساب 💰</h3>
+      <div class="money-row"><span>سعر الزيارة الواحدة</span><span class="v" id="m-visit-price">غير محدد</span></div>
+      <div id="m-legacy-package">
+        <div class="money-row"><span>إجمالي الباكدج القديم</span><span class="v" id="m-total">0 ج</span></div>
+        <div class="money-row"><span>الباقي من الباكدج القديم</span><span class="v red" id="m-remain">0 ج</span></div>
+      </div>
+      <div class="money-row"><span>المدفوع فعليًا</span><span class="v green" id="m-paid">0 ج</span></div>
+      <div class="rep-note" id="m-price-note">سعر الزيارة مش دفعة. الإيرادات بتتحسب من الدفعات المسجلة فقط.</div>
+      <div id="payments-history"></div>
+    </div>
+
+    <div class="card">
+      <h3>سجل الحضور 📅</h3>
+      <label class="fld">تاريخ الحضور<input id="a-date" type="date"></label>
+      <label class="fld">نوع الزيارة<select id="a-type">
+        <option value="">اختار نوع الزيارة</option><option value="session">جلسة</option><option value="exam-session">كشف جديد + جلسة</option>
+      </select></label>
+      <button class="btn" id="btn-save-attendance">سجّل / عدّل حضور اليوم المختار</button>
+      <div class="rep-note">كل عميل مرة واحدة في اليوم. ده تسجيل حضور فقط، مش جلسة مكتملة ولا دفعة. لحضور سابق اختار تاريخه.</div>
+      <div id="attendance-history"></div>
+    </div>
+    <div class="card">
+      <h3>سجل الجلسات وأسعارها 📝</h3>
+      <button class="btn" id="btn-add-session">＋ سجّل جلسة وسعرها</button>
+      <div id="session-form" class="hidden" style="margin-top:12px;">
+        <label class="fld">التاريخ
+          <input id="s-date" type="date">
+        </label>
+        <label class="fld">نوع الزيارة<select id="s-type">
+          <option value="">اختار نوع الزيارة</option><option value="session">جلسة</option><option value="exam-session">كشف جديد + جلسة</option>
+        </select></label>
+        <label class="fld">سعر الجلسة دي (ج)<select id="s-price">
+          <option value="">اختار سعر الجلسة دي</option><option value="50">50 جنيه</option><option value="100">100 جنيه</option><option value="150">150 جنيه</option><option value="200">200 جنيه</option><option value="250">250 جنيه</option><option value="300">300 جنيه</option><option value="350">350 جنيه</option><option value="400">400 جنيه</option><option value="450">450 جنيه</option><option value="500">500 جنيه</option></select></label>
+        <div class="rep-note">اختار سعر كل جلسة لوحدها، ممكن يختلف عن باقي الجلسات. سعر الجلسة بيتسجّل كدفعة تلقائيًا في حساب العميل أول ما تحفظها، ومش بيغيّر سعر ملف العميل.</div>
+        <div class="rep-note">حفظ الجلسة بيسجل حضور في تاريخها، من غير تكرار العميل في عدد الحضور.</div>
+        <label class="fld">إيه اللي اتعمل في الجلسة؟ (اختياري)
+          <textarea id="s-work" placeholder="مثال: ألتراساوند + تمرينات إطالة"></textarea>
+        </label>
+        <label class="fld">ملاحظات / تطور الحالة
+          <textarea id="s-note" placeholder="مثال: الألم قل، المدى الحركي اتحسن"></textarea>
+        </label>
+        <button class="btn" id="btn-save-session">حفظ الجلسة</button>
+        <button class="btn gray" id="btn-cancel-session" style="margin-top:8px;">إلغاء</button>
+      </div>
+      <ul class="timeline" id="sessions-list" style="margin-top:14px;"></ul>
+      <div class="empty hidden" id="sessions-empty" style="padding:16px;">مفيش جلسات متسجلة لسه</div>
+    </div>
+
+    <div class="card">
+      <h3>الأشعة 🩻</h3>
+      <button class="btn secondary" id="btn-add-xray">＋ ارفع أشعة</button>
+      <input id="xray-input" type="file" accept="image/*" multiple class="hidden">
+      <div class="xgrid" id="xray-grid"></div>
+      <div class="empty hidden" id="xray-empty" style="padding:16px;">مفيش أشعة لسه</div>
+    </div>
+
+    <div class="card">
+      <h3>التحاليل 🧪</h3>
+      <button class="btn secondary" id="btn-add-lab">＋ ارفع تحاليل</button>
+      <input id="lab-input" type="file" accept="image/*" multiple class="hidden">
+      <div class="xgrid" id="lab-grid"></div>
+      <div class="empty hidden" id="lab-empty" style="padding:16px;">مفيش تحاليل لسه</div>
+    </div>
+
+    <div class="card">
+      <button class="btn gray" id="btn-wa-remind">📨 ابعتله تذكير واتساب بالموعد الجاي</button>
+      <div id="wa-editor" class="hidden" style="margin-top:12px;">
+        <label class="fld">الرسالة (تقدر تعدلها قبل الإرسال)
+          <textarea id="wa-text" style="min-height:110px;"></textarea>
+        </label>
+        <button class="btn" id="btn-wa-send">افتح واتساب بالرسالة 💬</button>
+      </div>
+      <button class="btn danger" id="btn-del-patient">🗑️ مسح العميل</button>
+    </div>
+  </div>
+
+  <!-- ================= SETTINGS ================= -->
+  <div id="view-settings" class="hidden page">
+    <div class="notice">
+      🔐 الرقم السري <b>قفل شاشة بس ومش بيشفر البيانات</b>. النسخة الاحتياطية العادية مكشوفة لأي حد يوصلها: استخدم <b>النسخة المشفرة</b> وماتبعتهاش في شات أو إيميل من غير حماية. ومتسجلش بيانات مرضى حقيقية غير لما تقرر طريقة تخزين آمنة.
+    </div>
+    <div class="card">
+      <h3>النسخة الاحتياطية</h3>
+      <button class="btn" id="btn-export-enc">🔒 نسخة احتياطية مشفرة (الأفضل)</button>
+      <div id="enc-export-form" class="hidden" style="margin-top:10px;">
+        <label class="fld">كلمة سر التشفير
+          <input id="enc-pass1" type="password" autocomplete="new-password" placeholder="٦ حروف أو أرقام على الأقل">
+        </label>
+        <label class="fld">تأكيد كلمة السر
+          <input id="enc-pass2" type="password" autocomplete="new-password">
+        </label>
+        <div class="hint">احفظها كويس: من غيرها مفيش حد يقدر يفتح النسخة، ولو نسيتها النسخة مش بتترجع.</div>
+        <button class="btn" id="btn-export-enc-go">حمّل النسخة المشفرة</button>
+        <button class="btn gray" id="btn-export-enc-cancel">إلغاء</button>
+      </div>
+      <button class="btn secondary" id="btn-export" style="margin-top:10px;">⬇️ نسخة عادية (غير مشفرة)</button>
+      <button class="btn secondary" id="btn-import">⬆️ استرجع نسخة احتياطية</button>
+      <input id="import-input" type="file" accept="application/json,.json" class="hidden">
+      <div id="enc-import-form" class="hidden" style="margin-top:10px;">
+        <label class="fld">النسخة دي مشفرة — اكتب كلمة سر التشفير
+          <input id="enc-pass-in" type="password" autocomplete="off">
+        </label>
+        <button class="btn" id="btn-import-enc-go">فك التشفير واسترجع</button>
+        <button class="btn gray" id="btn-import-enc-cancel">إلغاء</button>
+      </div>
+      <div class="hint">النسخة بتشمل كل العملاء والجلسات والحسابات والصور. الاسترجاع بيستبدل كل البيانات الحالية. النسخ العادية القديمة بتترجع عادي.</div>
+    </div>
+    <div class="card">
+      <h3>رسالة تذكير الموعد (واتساب)</h3>
+      <label class="fld">نص الرسالة
+        <textarea id="wa-template" style="min-height:110px;"></textarea>
+      </label>
+      <div class="hint">الكلمات دي بتتبدل تلقائيًا: {اسم} {تاريخ} {وقت}</div>
+      <button class="btn secondary" id="btn-save-template">حفظ النص</button>
+    </div>
+    <div class="card">
+      <h3>الرقم السري</h3>
+      <button class="btn secondary" id="btn-change-pin">غيّر الرقم السري</button>
+    </div>
+    <div class="card">
+      <h3>منطقة الخطر</h3>
+      <button class="btn danger" id="btn-wipe">🗑️ مسح كل البيانات نهائيًا</button>
+    </div>
+    <div class="card center muted" style="font-size:13px;">
+      سجل عملاء مركز النيل — نسخة أولية<br>الإصدار 1.0
+    </div>
+  </div>
+
+  <!-- X-ray fullscreen viewer -->
+  <div id="xviewer" class="xviewer hidden">
+    <img id="xviewer-img" alt="صورة الأشعة">
+    <div class="row">
+      <button class="del" id="xviewer-del">🗑️ مسح</button>
+      <button class="close" id="xviewer-close">إغلاق</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   سجل عملاء مركز النيل — تطبيق محلي بالكامل
+   البيانات كلها على الجهاز (IndexedDB)، مفيش سيرفر.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtMoney = n => (Number(n)||0).toLocaleString("en-EG") + " ج";
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function fmtDate(iso){
+  if(!iso) return "—";
+  try{ return new Date(iso+"T00:00:00").toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}); }catch(e){ return iso; }
+}
+function fmtTime(t){
+  if(!t) return "";
+  try{ return new Date("2000-01-01T"+t).toLocaleTimeString("ar-EG",{hour:"numeric",minute:"2-digit"}); }catch(e){ return t; }
+}
+function normalizeWaPhone(p){
+  let d = String(p||"").replace(/\D/g,"");
+  if(d.startsWith("0020")) d = d.slice(2);
+  if(d.startsWith("0")) d = "20"+d.slice(1);
+  return d;
+}
+
+/* ---------- IndexedDB ---------- */
+let db;
+function dbOpen(){
+  return new Promise((res,rej)=>{
+    const rq = indexedDB.open("nile-center",2);
+    rq.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains("patients")) d.createObjectStore("patients",{keyPath:"id",autoIncrement:true});
+      if(!d.objectStoreNames.contains("sessions")){ const s = d.createObjectStore("sessions",{keyPath:"id",autoIncrement:true}); s.createIndex("patientId","patientId"); }
+      if(!d.objectStoreNames.contains("payments")){ const p = d.createObjectStore("payments",{keyPath:"id",autoIncrement:true}); p.createIndex("patientId","patientId"); }
+      if(!d.objectStoreNames.contains("xrays")){ const x = d.createObjectStore("xrays",{keyPath:"id",autoIncrement:true}); x.createIndex("patientId","patientId"); }
+      if(!d.objectStoreNames.contains("expenses")) d.createObjectStore("expenses",{keyPath:"id",autoIncrement:true});
+    };
+    rq.onsuccess = e=>{ db=e.target.result; res(db); };
+    rq.onerror = e=>rej(e.target.error);
+  });
+}
+function tx(store,mode){ return db.transaction(store,mode).objectStore(store); }
+function dbAll(store){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readonly").getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=e=>rej(e.target.error); });
+}
+function dbByPatient(store,pid){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readonly").index("patientId").getAll(IDBKeyRange.only(pid)); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=e=>rej(e.target.error); });
+}
+function dbAdd(store,val){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").add(val); rq.onsuccess=()=>res(rq.result); rq.onerror=e=>rej(e.target.error); });
+}
+function dbPut(store,val){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").put(val); rq.onsuccess=()=>res(rq.result); rq.onerror=e=>rej(e.target.error); });
+}
+function dbDel(store,key){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").delete(key); rq.onsuccess=()=>res(); rq.onerror=e=>rej(e.target.error); });
+}
+function dbClear(store){
+  return new Promise((res,rej)=>{ const rq=tx(store,"readwrite").clear(); rq.onsuccess=()=>res(); rq.onerror=e=>rej(e.target.error); });
+}
+
+/* ---------- PIN ---------- */
+async function sha256(t){
+  if(window.crypto && crypto.subtle){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nile:"+t));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))>>>0; return "x"+h;
+}
+const PIN_KEY="nc_pin_hash";
+let pinMode="unlock", pinFirst="", pinBuf="";
+
+function renderDots(){
+  const dots=$("pin-dots").children;
+  for(let i=0;i<dots.length;i++) dots[i].className = i<pinBuf.length ? "on" : "";
+}
+function pinPress(k){
+  if(k==="del"){ pinBuf=pinBuf.slice(0,-1); renderDots(); $("lock-error").textContent=""; return; }
+  if(pinBuf.length>=4) return;
+  pinBuf+=k; renderDots();
+  if(pinBuf.length===4) setTimeout(pinSubmit,120);
+}
+async function pinSubmit(){
+  $("lock-error").textContent="";
+  if(pinMode==="setup1"){
+    pinFirst=pinBuf; pinBuf=""; renderDots();
+    pinMode="setup2"; $("lock-sub").textContent="اكتب الرقم تاني للتأكيد";
+    return;
+  }
+  if(pinMode==="setup2"){
+    if(pinBuf===pinFirst){
+      localStorage.setItem(PIN_KEY, await sha256(pinBuf));
+      pinBuf=""; pinMode="unlock";
+      enterApp();
+    } else {
+      $("lock-error").textContent="الرقمان مش متطابقين، ابدأ من الأول";
+      pinMode="setup1"; pinFirst=""; pinBuf=""; renderDots();
+      $("lock-sub").textContent="اختار رقم سري من 4 أرقام";
+    }
+    return;
+  }
+  if(pinMode==="change2"){
+    localStorage.setItem(PIN_KEY, await sha256(pinBuf));
+    pinBuf=""; pinMode="unlock";
+    enterApp();
+    return;
+  }
+  // unlock / change1 (both compare against stored)
+  const h = await sha256(pinBuf);
+  if(h===localStorage.getItem(PIN_KEY)){
+    if(pinMode==="change1"){
+      pinMode="change2"; pinBuf=""; renderDots();
+      $("lock-sub").textContent="اكتب الرقم الجديد (4 أرقام)";
+    } else {
+      pinBuf=""; enterApp();
+    }
+  } else {
+    $("lock-error").textContent="الرقم غلط، حاول تاني";
+    pinBuf=""; renderDots();
+  }
+}
+function showLock(mode){
+  pinMode=mode; pinBuf=""; pinFirst=""; renderDots(); $("lock-error").textContent="";
+  $("lock-sub").textContent =
+    mode==="setup1" ? "اختار رقم سري من 4 أرقام يقفل التطبيق" :
+    mode==="setup2" ? "اكتب الرقم تاني للتأكيد" :
+    mode==="change1" ? "اكتب رقمك الحالي" :
+    mode==="change2" ? "اكتب الرقم الجديد (4 أرقام)" : "ادخل رقمك السري";
+  $("lock-forgot").classList.toggle("hidden", !(mode==="unlock"));
+  $("lock-cancel").classList.toggle("hidden", !(mode==="change1"||mode==="change2"));
+  hideAllViews(); $("view-lock").classList.remove("hidden");
+  $("topbar").classList.add("hidden");
+}
+
+/* ---------- Monthly report ---------- */
+const AR_MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+let reportMonth = new Date(); reportMonth.setDate(1);
+let reportMode = "month", reportDay = new Date();
+function dayStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function setReportMode(m){
+  reportMode=m;
+  $("seg-month").classList.toggle("on",m==="month");
+  $("seg-day").classList.toggle("on",m==="day");
+  $("report-month-view").classList.toggle("hidden",m!=="month");
+  $("report-day-view").classList.toggle("hidden",m!=="day");
+  renderReport();
+}
+function renderReportDay(){
+  const ds=dayStr(reportDay);
+  const t=new Date(), ts=dayStr(t);
+  const yd=dayStr(new Date(t.getFullYear(),t.getMonth(),t.getDate()-1));
+  $("repd-label").textContent = ds===ts ? "النهاردة" : ds===yd ? "إمبارح" : fmtDate(ds);
+  const pk=$("repd-picker"); pk.value=ds; pk.max=ts;
+  const pays=payments.filter(x=>x.date===ds);
+  const sess=sessions.filter(x=>x.date===ds);
+  const exps=expenses.filter(x=>x.date===ds).sort((a,b)=>b.id-a.id);
+  const total=pays.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  const expTotal=exps.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  $("repd-total").textContent=fmtMoney(total);
+  $("repd-sessions").textContent=sess.length;
+  $("repd-clients").textContent=renderAttendanceList("repd-attendance-list","repd-attendance-empty",ds);
+  $("repd-exp-total").textContent=fmtMoney(expTotal);
+  const net=total-expTotal; const ne=$("repd-net"); ne.textContent=fmtMoney(net); ne.classList.toggle("neg",net<0);
+  $("repd-exp-rows").innerHTML=exps.map(x=>
+    `<div class="rep-row"><span>${esc(x.cat||"أخرى")}${x.note?" — "+esc(x.note):""}</span><span class="v red">${fmtMoney(x.amount)}<button class="xdel" data-exp="${x.id}">✕</button></span></div>`).join("");
+  $("repd-exp-empty").classList.toggle("hidden",exps.length>0);
+  $("repd-exp-rows").querySelectorAll(".xdel").forEach(b=>b.addEventListener("click",()=>delExpense(Number(b.dataset.exp))));
+  $("repd-pay-rows").innerHTML=pays.map(x=>{
+    const p=patients.find(z=>z.id===x.patientId);
+    return `<div class="rep-row"><span>${esc(p?p.name:"عميل محذوف")}${x.note?" — "+esc(x.note):""}</span><span class="v">${fmtMoney(x.amount)}</span></div>`;
+  }).join("");
+  $("repd-pay-empty").classList.toggle("hidden",pays.length>0);
+  $("repd-next").disabled = ds>=ts;
+}
+function renderReport(){
+  if(reportMode==="day"){ renderReportDay(); return; }
+  const y=reportMonth.getFullYear(), m=reportMonth.getMonth();
+  $("report-month-label").textContent = AR_MONTHS[m]+" "+y;
+  const inMonth = d => { const p=String(d||"").split("-"); return p[0]===String(y) && Number(p[1])===m+1; };
+  const pays = payments.filter(x=>inMonth(x.date));
+  const sess = sessions.filter(x=>inMonth(x.date));
+  const total = pays.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  $("rep-total").textContent = fmtMoney(total);
+  $("rep-sessions").textContent = sess.length;
+  $("rep-clients").textContent = new Set(sess.map(s=>s.patientId)).size;
+  const firstSess={};
+  for(const s of sessions){ const k=String(s.patientId); if(!(k in firstSess)||String(s.date)<firstSess[k]) firstSess[k]=String(s.date); }
+  $("rep-new").textContent = Object.values(firstSess).filter(inMonth).length;
+  const byId={};
+  for(const s of sess){ (byId[s.patientId]=byId[s.patientId]||{s:0,p:0}).s++; }
+  for(const x of pays){ (byId[x.patientId]=byId[x.patientId]||{s:0,p:0}).p+=Number(x.amount)||0; }
+  const rows = Object.entries(byId).map(([pid,v])=>{
+    const pat = patients.find(z=>String(z.id)===String(pid));
+    return {name: pat ? pat.name : "عميل محذوف", s:v.s, p:v.p};
+  }).sort((a,b)=> b.p-a.p || b.s-a.s);
+  $("rep-rows").innerHTML = rows.map(r=>
+    `<div class="rep-row"><span>${esc(r.name)} — ${r.s} جلسة</span><span class="v">${fmtMoney(r.p)}</span></div>`).join("");
+  $("rep-empty").classList.toggle("hidden", rows.length>0);
+  const byDay={};
+  for(const x of pays){ const k=String(x.date); byDay[k]=(byDay[k]||0)+(Number(x.amount)||0); }
+  const todayD=new Date();
+  const lastDay=(y===todayD.getFullYear() && m===todayD.getMonth()) ? todayD.getDate() : new Date(y,m+1,0).getDate();
+  let dayRows='';
+  for(let d=lastDay; d>=1; d--){
+    const dd=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    dayRows+=`<div class="rep-row day-jump" data-d="${dd}" style="cursor:pointer;"><span>${esc(fmtDate(dd))}</span><span class="v">${fmtMoney(byDay[dd]||0)}</span></div>`;
+  }
+  $("rep-days").innerHTML = dayRows;
+  $("rep-days").querySelectorAll(".day-jump").forEach(b=>b.addEventListener("click",()=>{ reportDay=new Date(b.dataset.d+"T00:00:00"); setReportMode("day"); }));
+  const now=new Date();
+  $("rep-next").disabled = (y===now.getFullYear() && m===now.getMonth()) || (y>now.getFullYear()) || (y===now.getFullYear() && m>now.getMonth());
+  const exps = expenses.filter(x=>inMonth(x.date)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.id-a.id);
+  const expTotal = exps.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  $("rep-exp-total").textContent = fmtMoney(expTotal);
+  const net = total - expTotal;
+  const ne=$("rep-net"); ne.textContent = fmtMoney(net); ne.classList.toggle("neg", net<0);
+  $("rep-exp-rows").innerHTML = exps.map(x=>
+    `<div class="rep-row"><span>${esc(x.cat||"أخرى")}${x.note?" — "+esc(x.note):""} <span class="muted" style="font-size:12px;">${esc(fmtDate(x.date))}</span></span><span class="v red">${fmtMoney(x.amount)}<button class="xdel" data-exp="${x.id}">✕</button></span></div>`).join("");
+  $("rep-exp-empty").classList.toggle("hidden", exps.length>0);
+  $("rep-exp-rows").querySelectorAll(".xdel").forEach(b=>b.addEventListener("click",()=>delExpense(Number(b.dataset.exp))));
+}
+
+/* ---------- Expenses ---------- */
+async function saveExpense(){
+  const amt=Number($("exp-amount").value);
+  if(!amt||amt<=0){ alert("اكتب مبلغ صحيح"); return; }
+  await dbAdd("expenses",{cat:$("exp-cat").value,note:$("exp-note").value.trim(),amount:amt,date:$("exp-date").value||todayStr(),createdAt:new Date().toISOString()});
+  $("exp-amount").value=""; $("exp-note").value="";
+  $("exp-form").classList.add("hidden");
+  await reloadAll(); renderReport();
+}
+async function delExpense(id){
+  if(!confirm("تمسح المصروف ده؟")) return;
+  await dbDel("expenses",id);
+  await reloadAll(); renderReport();
+}
+
+/* ---------- Navigation ---------- */
+const VIEWS=["home","patients","edit-patient","patient","settings","report"];
+let navStack=["home"];
+function hideAllViews(){ VIEWS.forEach(v=>$("view-"+v).classList.add("hidden")); $("view-lock").classList.add("hidden"); }
+function show(name,push){
+  hideAllViews();
+  $("view-"+name).classList.remove("hidden");
+  $("topbar").classList.remove("hidden");
+  if(push!==false) navStack.push(name);
+  const isHome = name==="home";
+  $("btn-back").classList.toggle("hidden", isHome);
+  $("topbar-spacer").classList.toggle("hidden", !isHome);
+  $("topbar-title").textContent =
+    name==="home" ? "مركز النيل 🩺" :
+    name==="patients" ? "كل العملاء" :
+    name==="edit-patient" ? (editingPatientId ? "تعديل عميل" : "عميل جديد") :
+    name==="patient" ? "ملف العميل" : name==="report" ? "تقرير الشهر" : "الإعدادات";
+  window.scrollTo(0,0);
+}
+function goBack(){
+  if(navStack.length>1) navStack.pop();
+  const v = navStack[navStack.length-1] || "home";
+  navStack.pop();
+  show(v);
+  if(v==="home") renderHome();
+  if(v==="patients") renderPatients();
+  if(v==="patient") renderPatient();
+  if(v==="report") renderReport();
+}
+function enterApp(){
+  navStack=["home"];
+  show("home",false);
+  renderHome();
+}
+
+/* ---------- State ---------- */
+let patients=[], sessions=[], payments=[], xrays=[], expenses=[];
+let currentPatientId=null, editingPatientId=null;
+
+async function reloadAll(){
+  patients = await dbAll("patients");
+  sessions = await dbAll("sessions");
+  payments = await dbAll("payments");
+  xrays    = await dbAll("xrays");
+  expenses = await dbAll("expenses");
+}
+function attendanceForDate(date){
+  const rows=new Map();
+  function add(pid,type,source){
+    const key=String(pid); let row=rows.get(key);
+    if(!row){ row={patientId:pid,types:new Set(),sources:new Set()}; rows.set(key,row); }
+    if(type) row.types.add(type); row.sources.add(source);
+  }
+  for(const p of patients) for(const a of (p.attendance||[])) if(a.date===date) add(p.id,a.visitType,'attendance');
+  for(const x of sessions) if(x.date===date) add(x.patientId,x.visitType,'session');
+  return [...rows.values()].map(r=>({...r,patient:patients.find(p=>String(p.id)===String(r.patientId))}));
+}
+function attendanceTypeText(types){
+  return [...types].map(t=>t==='exam-session'?'كشف جديد + جلسة':t==='session'?'جلسة':'نوع غير محدد').join(' / ')||'نوع الزيارة غير محدد (سجل قديم)';
+}
+function renderAttendanceList(listId,emptyId,date){
+  const rows=attendanceForDate(date).sort((a,b)=>(a.patient?.name||'').localeCompare(b.patient?.name||'','ar'));
+  $(listId).innerHTML=rows.map(r=>`<li ${r.patient?`data-pid="${r.patient.id}"`:''}><div class="avatar">✓</div><div class="pinfo"><div class="nm">${esc(r.patient?.name||'عميل محذوف')}</div><div class="sub">${esc(attendanceTypeText(r.types))}</div></div></li>`).join('');
+  $(emptyId).classList.toggle('hidden',rows.length>0); bindPatientRows($(listId));
+  return rows.length;
+}
+async function saveAttendance(){
+  const date=$('a-date').value,type=$('a-type').value;
+  if(!date||date>todayStr()){alert('اختار تاريخ حضور لحد النهاردة');return;}
+  if(!type){alert('اختار نوع الزيارة');return;}
+  const p=patients.find(p=>p.id===currentPatientId); if(!p)return;
+  const attendance=(p.attendance||[]).filter(a=>a.date!==date);
+  attendance.push({date,visitType:type,createdAt:new Date().toISOString()});
+  await dbPut('patients',{...p,attendance}); await reloadAll(); renderPatient();
+}
+async function removeAttendance(date){
+  if(!confirm('تمسح تسجيل الحضور ده؟ لو فيه جلسة بنفس التاريخ هيفضل الحضور ظاهر بسبب الجلسة.'))return;
+  const p=patients.find(p=>p.id===currentPatientId); if(!p)return;
+  await dbPut('patients',{...p,attendance:(p.attendance||[]).filter(a=>a.date!==date)});
+  await reloadAll();renderPatient();
+}
+const patientSessions = pid => sessions.filter(s=>s.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+const patientPayments = pid => payments.filter(p=>p.patientId===pid).sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id);
+const patientFiles = (pid,kind) => xrays.filter(x=>x.patientId===pid && (x.kind||"xray")===kind).sort((a,b)=> b.id-a.id);
+
+/* ---------- Home ---------- */
+function renderHome(){
+  const h=new Date().getHours();
+  $("greet1").textContent = (h<12 ? "صباح الخير" : "مساء الخير") + " يا دكتور 👋";
+  $("greet2").textContent = new Date().toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const t=todayStr();
+  const due = patients.filter(p=>p.nextDate && p.nextDate<=t);
+  const doneToday = sessions.filter(s=>s.date===t);
+  $("st-today").textContent = renderAttendanceList("attendance-today-list","attendance-today-empty",t);
+  $("st-sessions").textContent = doneToday.length;
+  $("st-total").textContent = patients.length;
+
+  const list=$("today-list"); list.innerHTML="";
+  due.sort((a,b)=>a.nextDate.localeCompare(b.nextDate));
+  for(const p of due){
+    const did = sessions.some(s=>s.patientId===p.id && s.date===t);
+    const late = p.nextDate<t;
+    const chip = did ? '<span class="chip done">خلص النهاردة ✓</span>'
+              : late ? '<span class="chip late">متأخر من '+esc(fmtDate(p.nextDate))+'</span>'
+              : '<span class="chip wait">مستني النهاردة</span>';
+    const done=patientSessions(p.id).length;
+    list.insertAdjacentHTML("beforeend",
+      `<li data-pid="${p.id}"><div class="avatar">${esc((p.name||"؟").trim()[0]||"؟")}</div>
+       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+       <div class="sub">${esc(p.programType||p.diagnosis||"")}${p.totalSessions?` — جلسة ${Math.min(done+1,p.totalSessions)} من ${p.totalSessions}`:""}</div></div>
+       ${chip}</li>`);
+  }
+  $("today-empty").classList.toggle("hidden", due.length>0);
+  bindPatientRows(list);
+  applySearch();
+}
+function bindPatientRows(list){
+  list.querySelectorAll("li[data-pid]").forEach(li=>{
+    li.addEventListener("click",()=>{ currentPatientId=Number(li.dataset.pid); show("patient"); renderPatient(); });
+  });
+}
+
+/* ---------- Search ---------- */
+function applySearch(){
+  const q=$("search").value.trim();
+  const wrap=$("home-search-results");
+  if(!q){ wrap.classList.add("hidden"); $("home-today-wrap").classList.remove("hidden"); return; }
+  const res=patients.filter(p=>(p.name||"").includes(q)||(p.phone||"").includes(q));
+  const list=$("search-list"); list.innerHTML="";
+  for(const p of res){
+    const done=patientSessions(p.id).length;
+    list.insertAdjacentHTML("beforeend",
+      `<li data-pid="${p.id}"><div class="avatar">${esc((p.name||"؟").trim()[0]||"؟")}</div>
+       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+       <div class="sub">${esc(p.phone||"")}${p.totalSessions?` — خلص ${done} من ${p.totalSessions}`:""}</div></div></li>`);
+  }
+  if(!res.length) list.innerHTML='<div class="empty" style="padding:16px;">مفيش نتايج</div>';
+  bindPatientRows(list);
+  wrap.classList.remove("hidden"); $("home-today-wrap").classList.add("hidden");
+}
+
+/* ---------- All patients ---------- */
+function renderPatients(){
+  const q=$("search2").value.trim();
+  const arr=patients.filter(p=>!q||(p.name||"").includes(q)||(p.phone||"").includes(q))
+                    .sort((a,b)=>(a.name||"").localeCompare(b.name||"","ar"));
+  const list=$("patients-list"); list.innerHTML="";
+  for(const p of arr){
+    const done=patientSessions(p.id).length;
+    list.insertAdjacentHTML("beforeend",
+      `<li data-pid="${p.id}"><div class="avatar">${esc((p.name||"؟").trim()[0]||"؟")}</div>
+       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+       <div class="sub">${esc(p.phone||"")}${p.totalSessions?` — خلص ${done} من ${p.totalSessions} جلسة`:""}</div></div>
+       ${p.nextDate?`<span class="chip gray">${esc(fmtDate(p.nextDate))}</span>`:""}</li>`);
+  }
+  $("patients-empty").classList.toggle("hidden", arr.length>0);
+  bindPatientRows(list);
+}
+
+/* ---------- Add / edit patient ---------- */
+let pendingPatientFiles=[];
+function renderPendingFiles(){
+  const g=$("f-file-grid"); if(!g) return; g.innerHTML="";
+  pendingPatientFiles.forEach((f,i)=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="thumb"; b.style.position="relative";
+    b.innerHTML=`<img src="${f.url}" alt="${f.kind==="lab"?"تحاليل":"أشعة"}"><span style="position:absolute;top:3px;left:3px;background:#dc2626;color:#fff;border-radius:50%;width:20px;height:20px;font-size:13px;line-height:20px;text-align:center;">×</span>`;
+    b.addEventListener("click",()=>{ URL.revokeObjectURL(f.url); pendingPatientFiles.splice(i,1); renderPendingFiles(); });
+    g.appendChild(b);
+  });
+}
+let pendingKind="xray";
+async function onPendingFilePicked(ev){
+  const files=[...ev.target.files];
+  for(const f of files){
+    try{
+      const blob=await compressImage(f);
+      pendingPatientFiles.push({kind:pendingKind,blob,url:URL.createObjectURL(blob)});
+    }catch(e){ alert("الصورة دي مش قدرت أقراها"); }
+  }
+  ev.target.value="";
+  renderPendingFiles();
+}
+function clearPendingFiles(){
+  pendingPatientFiles.forEach(f=>URL.revokeObjectURL(f.url));
+  pendingPatientFiles=[]; renderPendingFiles();
+}
+function openEditPatient(p){
+  editingPatientId = p ? p.id : null;
+  $("edit-patient-title").textContent = p ? "تعديل بيانات العميل" : "عميل جديد";
+  $("f-visit-type").value=p?.registrationType||"";
+  $("f-attendance-wrap").classList.toggle("hidden",!!p);
+  $("f-attended").checked=false;
+  $("f-attendance-date").value=todayStr(); $("f-attendance-date").max=todayStr();
+  $("f-name").value=p?.name||""; $("f-phone").value=p?.phone||"";
+  $("f-age").value=p?.age||""; $("f-gender").value=p?.gender||"";
+  $("f-address").value=p?.address||""; $("f-job").value=p?.job||"";
+  $("f-refdoc").value=p?.refDoc||"";
+  $("f-diag").value=p?.diagnosis||""; $("f-prog").value=p?.programType||"";
+  $("f-total").value=p?.totalSessions||""; $("f-price").value=p?.packagePrice||"";
+  $("f-visit-price").value=validVisitPrice(p?.visitPrice)?String(p.visitPrice):"";
+  $("f-legacy-package").classList.toggle("hidden",!p || p.billingMode==="per-visit");
+  $("f-notes").value=p?.notes||"";
+  clearPendingFiles();
+  show("edit-patient");
+}
+function validVisitPrice(v){ const n=Number(v); return n>=50 && n<=500 && n%50===0; }
+function setDefaultVisitPrice(){
+  const type=$("f-visit-type").value;
+  $("f-visit-price").value=type==="session"?"150":type==="exam-session"?"200":"";
+}
+async function savePatient(){
+  const name=$("f-name").value.trim();
+  if(!name){ alert("اكتب اسم العميل الأول"); return; }
+  const registrationType=$("f-visit-type").value;
+  if(!editingPatientId && !registrationType){ alert("اختار نوع التسجيل: جلسة أو كشف جديد + جلسة"); $("f-visit-type").focus(); return; }
+  if(!editingPatientId && $("f-attended").checked && (!$("f-attendance-date").value || $("f-attendance-date").value>todayStr())){alert("اختار تاريخ حضور لحد النهاردة");return;}
+  const visitPrice=$("f-visit-price").value;
+  if((!editingPatientId || visitPrice) && !validVisitPrice(visitPrice)){alert("اختار سعر الزيارة من 50 لحد 500 جنيه");$("f-visit-price").focus();return;}
+  const val={
+    registrationType,
+    visitPrice:visitPrice?Number(visitPrice):null,
+    name, phone:$("f-phone").value.trim(),
+    age:$("f-age").value?Number($("f-age").value):null,
+    gender:$("f-gender").value||"",
+    diagnosis:$("f-diag").value.trim(),
+    programType:$("f-prog").value.trim(),
+    totalSessions:$("f-total").value?Number($("f-total").value):null,
+    notes:$("f-notes").value.trim(),
+    address:$("f-address").value.trim(),
+    job:$("f-job").value.trim(),
+    refDoc:$("f-refdoc").value.trim(),
+  };
+  if(editingPatientId){
+    const old=patients.find(p=>p.id===editingPatientId)||{};
+    const legacy=old.billingMode!=="per-visit"?{packagePrice:$("f-price").value?Number($("f-price").value):0}:{};
+    await dbPut("patients",{...old,...val,...legacy,id:editingPatientId});
+    currentPatientId=editingPatientId;
+  } else {
+    val.billingMode="per-visit";
+    val.createdAt=new Date().toISOString(); val.nextDate=null;
+    val.attendance=$("f-attended").checked?[{date:$("f-attendance-date").value,visitType:registrationType,createdAt:new Date().toISOString()}]:[];
+    currentPatientId=await dbAdd("patients",val);
+  }
+  editingPatientId=null;
+  for(const f of pendingPatientFiles){
+    await dbAdd("xrays",{patientId:currentPatientId,kind:f.kind,blob:f.blob,ts:new Date().toISOString()});
+    URL.revokeObjectURL(f.url);
+  }
+  pendingPatientFiles=[];
+  await reloadAll();
+  navStack=["home"];
+  show("patient"); renderPatient();
+}
+
+/* ---------- Patient file ---------- */
+function renderPatient(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p){ goBack(); return; }
+  $("p-avatar").textContent=(p.name||"؟").trim()[0]||"؟";
+  $("p-name").textContent=p.name;
+  const meta=[];
+  if(p.age) meta.push(p.age+" سنة");
+  if(p.gender) meta.push(p.gender);
+  if(p.phone) meta.push(p.phone);
+  $("p-meta").textContent=meta.join(" • ")||"—";
+  $("p-diag").textContent=p.diagnosis?("التشخيص: "+p.diagnosis):"";
+  const extra=[];
+  if(p.address) extra.push("العنوان: "+p.address);
+  if(p.job) extra.push("الوظيفة: "+p.job);
+  if(p.refDoc) extra.push("تحويل: "+p.refDoc);
+  if(p.registrationType==="session") extra.push("نوع التسجيل: جلسة");
+  if(p.registrationType==="exam-session") extra.push("نوع التسجيل: كشف جديد + جلسة");
+  $("p-extra").textContent=extra.join(" • ");
+  $("p-call").href=p.phone?("tel:"+p.phone):"#";
+  const wa=normalizeWaPhone(p.phone);
+  $("p-wa").href=wa?("https://wa.me/"+wa):"#";
+  $("p-notes-view").classList.toggle("hidden",!p.notes);
+  $("p-notes-view").textContent=p.notes?("📌 "+p.notes):"";
+
+  $("a-date").value=todayStr(); $("a-date").max=todayStr(); $("a-type").value="";
+  const explicit=p.attendance||[];
+  const dates=[...new Set([...explicit.map(a=>a.date),...patientSessions(p.id).map(x=>x.date)])].sort().reverse();
+  $("attendance-history").innerHTML=dates.map(date=>{
+    const row=attendanceForDate(date).find(r=>String(r.patientId)===String(p.id));
+    return `<div class="rep-row"><span>${esc(fmtDate(date))}<br><small>${esc(attendanceTypeText(row.types))}</small></span>${explicit.some(a=>a.date===date)?`<button class="xdel attendance-delete" data-date="${esc(date)}" aria-label="مسح تسجيل الحضور">✕</button>`:'<small>من سجل الجلسات</small>'}</div>`;
+  }).join('')||'<div class="rep-note">مفيش حضور متسجل لسه</div>';
+  $("attendance-history").querySelectorAll('.attendance-delete').forEach(b=>b.addEventListener('click',()=>removeAttendance(b.dataset.date)));
+  const ss=patientSessions(p.id);
+  const done=ss.length, total=p.totalSessions||0;
+  $("p-prog-name").textContent=p.programType||"—";
+  if(total>0){
+    const pct=Math.min(100,Math.round(done/total*100));
+    $("p-progbar").style.width=pct+"%";
+    $("p-prog-text").textContent=`خلص ${done} من ${total} جلسة`+(done>=total?" — البرنامج خلص 🎉":` — فاضل ${total-done}`);
+  } else {
+    $("p-progbar").style.width=total===0&&done>0?"100%":"0%";
+    $("p-prog-text").textContent=`خلص ${done} جلسة`+(total===0?" (مفيش عدد محدد)":"");
+  }
+  $("p-nextdate").value=p.nextDate||"";
+  $("p-nexttime").value=p.nextTime||"";
+  $("wa-editor").classList.add("hidden");
+
+  const ps=patientPayments(p.id);
+  const paid=ps.reduce((a,b)=>a+(Number(b.amount)||0),0);
+  $("m-visit-price").textContent=validVisitPrice(p.visitPrice)?fmtMoney(p.visitPrice):"غير محدد";
+  $("m-legacy-package").classList.toggle("hidden",p.billingMode==="per-visit");
+  $("m-price-note").textContent=p.billingMode==="per-visit"
+    ?"سعر الزيارة مش دفعة ولا إجمالي مستحق. سعر كل جلسة بتسجّلها بيتضاف تلقائيًا كدفعة في سجل الدفعات."
+    :"حساب الباكدج القديم محفوظ زي ما هو. سعر الزيارة منفصل؛ مفيش أسعار اتضافت للزيارات القديمة. الجلسات الجديدة اللي بتسجّلها بسعرها بتتضاف تلقائيًا كدفعات.";
+  const totalPrice=Number(p.packagePrice)||0;
+  $("m-total").textContent=fmtMoney(totalPrice);
+  $("m-paid").textContent=fmtMoney(paid);
+  $("m-remain").textContent=fmtMoney(Math.max(0,totalPrice-paid));
+  const ph=$("payments-history");
+  ph.innerHTML = ps.length
+    ? '<div class="section-title" style="padding:10px 0 2px;">الدفعات</div>'+
+      ps.map(x=>`<div class="money-row"><span>${esc(fmtDate(x.date))}${x.note?" — "+esc(x.note):""}</span><span class="v green">${fmtMoney(x.amount)}</span></div>`).join("")
+    : "";
+
+  const sl=$("sessions-list"); sl.innerHTML="";
+  for(const s of ss){
+    sl.insertAdjacentHTML("beforeend",
+      `<li><div class="d">${esc(fmtDate(s.date))}</div>
+       <div class="w">${esc(attendanceTypeText(new Set(s.visitType?[s.visitType]:[])))}</div>
+       <div class="w">سعر الجلسة: ${validVisitPrice(s.price)?fmtMoney(s.price):'غير مسجل (سجل قديم)'}</div>
+       ${payments.some(pay=>pay.sessionId===s.id)?'<div class="w">💰 اتسجّلت كدفعة تلقائيًا في الحساب</div>':''}
+       <button class="btn secondary session-edit" data-id="${s.id}" style="margin:8px 0;">تعديل الجلسة وسعرها</button>
+       ${s.work?`<div class="w">${esc(s.work)}</div>`:""}
+       ${s.note?`<div class="n">${esc(s.note)}</div>`:""}</li>`);
+  }
+  sl.querySelectorAll('.session-edit').forEach(b=>b.addEventListener('click',()=>openSessionForm(Number(b.dataset.id))));
+  $("sessions-empty").classList.toggle("hidden", ss.length>0);
+  $("session-form").classList.add("hidden");
+
+  renderFileGrids();
+}
+
+/* ---------- Sessions ---------- */
+let editingSessionId=null;
+function openSessionForm(id=null){
+  const s=id===null?null:sessions.find(x=>x.id===id&&x.patientId===currentPatientId);
+  if(id!==null&&!s) return;
+  editingSessionId=s?s.id:null;
+  $("s-date").value=s?s.date:todayStr(); $("s-date").max=todayStr();
+  $("s-type").value=s?.visitType||"";
+  $("s-price").value=validVisitPrice(s?.price)?String(s.price):"";
+  $("s-work").value=s?.work||""; $("s-note").value=s?.note||"";
+  $("btn-save-session").textContent=s?"حفظ تعديل الجلسة":"حفظ الجلسة";
+  $("session-form").classList.remove("hidden");
+  $("session-form").scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+let savingSession=false;
+const AUTO_PAY_NOTE="قيمة جلسة — اتسجّلت تلقائيًا مع الجلسة";
+function dbSaveSessionWithPayment(entry,payment){
+  return new Promise((res,rej)=>{
+    const t=db.transaction(["sessions","payments"],"readwrite");
+    const ss=t.objectStore("sessions"), ps=t.objectStore("payments");
+    const rq=entry.id?ss.put(entry):ss.add(entry);
+    rq.onsuccess=()=>{ payment.sessionId=rq.result; if(payment.id) ps.put(payment); else ps.add(payment); };
+    t.oncomplete=()=>res(rq.result);
+    t.onerror=e=>rej(e.target.error||t.error);
+    t.onabort=e=>rej(e.target.error||t.error);
+  });
+}
+async function saveSession(){
+  if(savingSession) return;
+  const old=editingSessionId===null?null:sessions.find(x=>x.id===editingSessionId&&x.patientId===currentPatientId);
+  if(editingSessionId!==null&&!old) return;
+  const date=$("s-date").value||todayStr();
+  const visitType=$("s-type").value;
+  if(!visitType&&!old){alert("اختار نوع الزيارة");return;}
+  if(date>todayStr()){alert("تاريخ الجلسة ماينفعش يكون في المستقبل");return;}
+  if(!validVisitPrice($("s-price").value)){alert("اختار سعر الجلسة دي من 50 لحد 500 جنيه");$("s-price").focus();return;}
+  const newPrice=Number($("s-price").value);
+  const work=$("s-work").value.trim(), note=$("s-note").value.trim();
+  const linked=old?payments.find(p=>p.sessionId===old.id&&String(p.patientId)===String(currentPatientId)):null;
+  if(old&&linked&&(Number(linked.amount)!==newPrice||linked.date!==date)){
+    if(!confirm(`الجلسة دي ليها دفعة مسجلة تلقائيًا (${fmtMoney(linked.amount)}). حفظ التعديل هيحدّث الدفعة دي لـ ${fmtMoney(newPrice)}. لو مش عايز تغيّر الدفعة اضغط إلغاء، ومش هيتحفظ أي تعديل.`)) return;
+  }
+  if(old&&!linked){
+    if(!confirm(`الجلسة دي مفيهاش دفعة مسجلة. حفظها بسعر ${fmtMoney(newPrice)} هيسجّل دفعة تلقائية بنفس المبلغ بتاريخ الجلسة. لو مش عايز الدفعة اضغط إلغاء، ومش هيتحفظ أي تعديل.`)) return;
+  }
+  savingSession=true;
+  try{
+    const entry={...(old||{}),patientId:currentPatientId,date,visitType,price:newPrice,work,note,createdAt:old?.createdAt||new Date().toISOString()};
+    const payment=linked?{...linked,amount:newPrice,date,note:AUTO_PAY_NOTE}:{patientId:currentPatientId,amount:newPrice,date,note:AUTO_PAY_NOTE,auto:true};
+    await dbSaveSessionWithPayment(entry,payment);
+    editingSessionId=null;
+    await reloadAll(); renderPatient();
+  }catch(e){ alert("مش قدرت أحفظ الجلسة ودفعتها، حاول تاني"); }
+  finally{ savingSession=false; }
+}
+
+/* ---------- X-rays & lab results ---------- */
+function renderFileGrids(){
+  for(const [kind,gridId,emptyId] of [["xray","xray-grid","xray-empty"],["lab","lab-grid","lab-empty"]]){
+    const xs=patientFiles(currentPatientId,kind);
+    const g=$(gridId); g.innerHTML="";
+    for(const x of xs){
+      const url=URL.createObjectURL(x.blob);
+      const b=document.createElement("button");
+      b.className="thumb";
+      b.innerHTML=`<img src="${url}" alt="${kind==="lab"?"تحاليل":"أشعة"}">`;
+      b.addEventListener("click",()=>openXray(x));
+      g.appendChild(b);
+    }
+    $(emptyId).classList.toggle("hidden", xs.length>0);
+  }
+}
+let viewingXray=null;
+function openXray(x){
+  viewingXray=x;
+  $("xviewer-img").src=URL.createObjectURL(x.blob);
+  $("xviewer").classList.remove("hidden");
+}
+async function compressImage(file){
+  const bmp=await createImageBitmap(file);
+  const scale=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(bmp.width*scale));
+  c.height=Math.max(1,Math.round(bmp.height*scale));
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  return await new Promise(r=>c.toBlob(r,"image/jpeg",0.82));
+}
+let uploadKind="xray";
+async function onFilePicked(ev){
+  const files=[...ev.target.files];
+  for(const f of files){
+    try{
+      const blob=await compressImage(f);
+      await dbAdd("xrays",{patientId:currentPatientId,kind:uploadKind,blob,ts:new Date().toISOString()});
+    }catch(e){ alert("الصورة دي مش قدرت أقراها"); }
+  }
+  ev.target.value="";
+  await reloadAll(); renderFileGrids();
+}
+
+/* ---------- WhatsApp reminder ---------- */
+const WA_TPL_KEY="nc_wa_template";
+const WA_TPL_DEFAULT="أستاذ {اسم}، معاك مركز النيل للعلاج الطبيعي. بنفتكرك بجلسة العلاج الجاية يوم {تاريخ} الساعة {وقت}. لو محتاج تغيّر الموعد رد علينا. 🌹";
+function waTemplate(){ return localStorage.getItem(WA_TPL_KEY)||WA_TPL_DEFAULT; }
+function renderWaMessage(p){
+  const dateTxt=p.nextDate?fmtDate(p.nextDate):"قريب";
+  const timeTxt=p.nextTime?fmtTime(p.nextTime):"—";
+  return waTemplate().split("{اسم}").join(p.name||"").split("{تاريخ}").join(dateTxt).split("{وقت}").join(timeTxt);
+}
+function waRemind(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p||!p.phone){ alert("العميل ده مفيهوش رقم تليفون"); return; }
+  $("wa-text").value=renderWaMessage(p);
+  $("wa-editor").classList.toggle("hidden");
+}
+function waSend(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p||!p.phone) return;
+  const wa=normalizeWaPhone(p.phone);
+  window.open("https://wa.me/"+wa+"?text="+encodeURIComponent($("wa-text").value),"_blank");
+}
+
+/* ---------- Delete patient ---------- */
+async function deletePatient(){
+  const p=patients.find(x=>x.id===currentPatientId);
+  if(!p) return;
+  if(!confirm(`متأكد إنك عايز تمسح "${p.name}" وكل جلساته وحساباته وصوره؟ ده مش بيتراجع عنه.`)) return;
+  for(const s of patientSessions(p.id)) await dbDel("sessions",s.id);
+  for(const x of patientPayments(p.id)) await dbDel("payments",x.id);
+  for(const x of xrays.filter(z=>z.patientId===p.id)) await dbDel("xrays",x.id);
+  await dbDel("patients",p.id);
+  await reloadAll();
+  navStack=["home"]; show("home",false); renderHome();
+}
+
+/* ---------- Backup ---------- */
+function blobToBase64(blob){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(blob); });
+}
+function base64ToBlob(b64){
+  const bin=atob(b64); const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:"image/jpeg"});
+}
+async function buildBackupObj(){
+  return {
+    app:"nile-center", version:1, exportedAt:new Date().toISOString(),
+    patients, sessions, payments, expenses,
+    xrays: await Promise.all(xrays.map(async x=>({id:x.id,patientId:x.patientId,ts:x.ts,kind:x.kind||"xray",data:await blobToBase64(x.blob)})))
+  };
+}
+async function downloadBackup(obj){
+  const blob=new Blob([JSON.stringify(obj)],{type:"application/json"});
+  const fname="نسخة-احتياطية-مركز-النيل-"+todayStr()+(obj.encrypted?"-مشفرة":"")+".json";
+  const file=new File([blob],fname,{type:"application/json"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:"نسخة احتياطية"}); return; }catch(e){ if(e && e.name==="AbortError") return; }
+  }
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=fname;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function exportBackup(){ await downloadBackup(await buildBackupObj()); }
+
+/* ---------- Encrypted backup (WebCrypto AES-GCM + PBKDF2) ---------- */
+const ENC_ITER=250000;
+const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64d = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function encKey(pass,salt,iter){
+  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:iter,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function buildEncryptedBackup(pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await encKey(pass,salt,ENC_ITER);
+  const plain=new TextEncoder().encode(JSON.stringify(await buildBackupObj()));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,plain);
+  return {app:"nile-center-backup",encrypted:true,kdf:"PBKDF2",hash:"SHA-256",iter:ENC_ITER,salt:b64e(salt),iv:b64e(iv),data:b64e(ct)};
+}
+async function decryptBackup(o,pass){
+  const key=await encKey(pass,b64d(o.salt),o.iter||ENC_ITER);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64d(o.iv)},key,b64d(o.data));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+async function exportEncrypted(){
+  const p1=$("enc-pass1").value, p2=$("enc-pass2").value;
+  if(p1.length<6){ alert("كلمة السر لازم تكون ٦ حروف أو أرقام على الأقل"); return; }
+  if(p1!==p2){ alert("كلمتا السر مش زي بعض"); return; }
+  await downloadBackup(await buildEncryptedBackup(p1));
+  $("enc-pass1").value=$("enc-pass2").value="";
+  $("enc-export-form").classList.add("hidden");
+}
+let pendingEnc=null;
+async function importBackup(ev){
+  const f=ev.target.files[0]; ev.target.value="";
+  if(!f) return;
+  let obj;
+  try{ obj=JSON.parse(await f.text()); }catch(e){ alert("الملف ده مش نسخة احتياطية صالحة"); return; }
+  if(obj && obj.encrypted===true && obj.data){
+    pendingEnc=obj;
+    $("enc-import-form").classList.remove("hidden");
+    return;
+  }
+  await restoreBackupObj(obj);
+}
+async function importEncryptedGo(){
+  if(!pendingEnc) return;
+  let obj;
+  try{ obj=await decryptBackup(pendingEnc,$("enc-pass-in").value); }
+  catch(e){ alert("كلمة السر غلط أو الملف مش سليم"); return; }
+  pendingEnc=null;
+  $("enc-pass-in").value="";
+  $("enc-import-form").classList.add("hidden");
+  await restoreBackupObj(obj);
+}
+async function restoreBackupObj(obj){
+  if(!obj||obj.app!=="nile-center"||!Array.isArray(obj.patients)){ alert("الملف ده مش نسخة احتياطية صالحة"); return; }
+  if(!confirm("الاسترجاع هيستبدل كل البيانات الحالية بالنسخة دي. متأكد؟")) return;
+  for(const st of ["patients","sessions","payments","xrays","expenses"]) await dbClear(st);
+  for(const p of obj.patients) await dbAdd("patients",p);
+  for(const s of (obj.sessions||[])) await dbAdd("sessions",s);
+  for(const x of (obj.payments||[])) await dbAdd("payments",x);
+  for(const x of (obj.expenses||[])) await dbAdd("expenses",x);
+  for(const x of (obj.xrays||[])) await dbAdd("xrays",{patientId:x.patientId,ts:x.ts,kind:x.kind||"xray",blob:base64ToBlob(x.data)});
+  await reloadAll();
+  alert("تمام ✅ البيانات اترجعت");
+  navStack=["home"]; show("home",false); renderHome();
+}
+
+/* ---------- Wipe / forgot PIN ---------- */
+async function wipeAll(){
+  for(const st of ["patients","sessions","payments","xrays","expenses"]) await dbClear(st);
+  localStorage.removeItem(PIN_KEY);
+  await reloadAll();
+  showLock("setup1");
+}
+
+/* ---------- Wiring ---------- */
+function init(){
+  // PIN pad
+  const pad=$("pinpad");
+  ["1","2","3","4","5","6","7","8","9","","0","del"].forEach(k=>{
+    const b=document.createElement("button");
+    b.textContent = k==="del" ? "⌫" : k;
+    if(k!=="") b.addEventListener("click",()=>pinPress(k));
+    pad.appendChild(b);
+  });
+  $("lock-forgot").addEventListener("click",()=>{
+    if(confirm("لو نسيت الرقم، الطريقة الوحيدة هي مسح كل البيانات والبدء من جديد (تقدر تسترجع من نسخة احتياطية لو عندك). متأكد؟")) wipeAll();
+  });
+  $("lock-cancel").addEventListener("click",()=>{ navStack=["home","settings"]; show("settings",false); });
+
+  $("btn-back").addEventListener("click",goBack);
+  $("btn-lock-now").addEventListener("click",()=>showLock("unlock"));
+
+  // Home
+  $("search").addEventListener("input",applySearch);
+  $("btn-all-patients").addEventListener("click",()=>{ show("patients"); renderPatients(); });
+  $("btn-settings").addEventListener("click",()=>show("settings"));
+  $("btn-report").addEventListener("click",()=>{ reportMonth=new Date(); reportMonth.setDate(1); reportDay=new Date(); show("report"); setReportMode("month"); });
+  $("seg-month").addEventListener("click",()=>setReportMode("month"));
+  $("seg-day").addEventListener("click",()=>setReportMode("day"));
+  $("repd-prev").addEventListener("click",()=>{ reportDay.setDate(reportDay.getDate()-1); renderReport(); });
+  $("repd-next").addEventListener("click",()=>{ if(!$("repd-next").disabled){ reportDay.setDate(reportDay.getDate()+1); renderReport(); } });
+  $("repd-picker").addEventListener("change",()=>{
+    const v=$("repd-picker").value; if(!v) return;
+    const d=new Date(v+"T00:00:00"); if(isNaN(d)) return;
+    const now=new Date(); reportDay = d>now ? new Date() : d;
+    renderReport();
+  });
+  $("rep-prev").addEventListener("click",()=>{ reportMonth.setMonth(reportMonth.getMonth()-1); renderReport(); });
+  $("rep-next").addEventListener("click",()=>{ if(!$("rep-next").disabled){ reportMonth.setMonth(reportMonth.getMonth()+1); renderReport(); } });
+  $("btn-add-expense").addEventListener("click",()=>{ $("exp-form").classList.toggle("hidden"); if(!$("exp-date").value) $("exp-date").value=todayStr(); });
+  $("btn-save-expense").addEventListener("click",saveExpense);
+  $("btn-cancel-expense").addEventListener("click",()=>$("exp-form").classList.add("hidden"));
+  $("btn-new-patient").addEventListener("click",()=>openEditPatient(null));
+  $("btn-new-patient2").addEventListener("click",()=>openEditPatient(null));
+  $("search2").addEventListener("input",renderPatients);
+  $("topbar-title").addEventListener("click",()=>{ if(navStack[navStack.length-1]==="home"){ show("settings"); } });
+
+  $("btn-attendance-review").addEventListener("click",()=>{ reportDay=new Date(); show("report"); setReportMode("day"); });
+  $("btn-save-attendance").addEventListener("click",saveAttendance);
+  // Patient form
+  $("btn-save-patient").addEventListener("click",savePatient);
+  $("f-visit-type").addEventListener("change",setDefaultVisitPrice);
+
+  // Patient file
+  $("p-edit").addEventListener("click",()=>openEditPatient(patients.find(p=>p.id===currentPatientId)));
+  $("p-nextdate").addEventListener("change",async ev=>{
+    const p=patients.find(x=>x.id===currentPatientId);
+    if(p){ p.nextDate=ev.target.value||null; await dbPut("patients",p); }
+  });
+  $("p-nexttime").addEventListener("change",async ev=>{
+    const p=patients.find(x=>x.id===currentPatientId);
+    if(p){ p.nextTime=ev.target.value||null; await dbPut("patients",p); }
+  });
+  $("btn-add-session").addEventListener("click",()=>openSessionForm());
+  $("btn-cancel-session").addEventListener("click",()=>{editingSessionId=null;$("session-form").classList.add("hidden");});
+  $("btn-save-session").addEventListener("click",saveSession);
+  $("btn-add-xray").addEventListener("click",()=>{ uploadKind="xray"; $("xray-input").click(); });
+  $("btn-add-lab").addEventListener("click",()=>{ uploadKind="lab"; $("lab-input").click(); });
+  $("xray-input").addEventListener("change",onFilePicked);
+  $("lab-input").addEventListener("change",onFilePicked);
+  $("btn-f-xray").addEventListener("click",()=>{ pendingKind="xray"; $("f-file-input").click(); });
+  $("btn-f-lab").addEventListener("click",()=>{ pendingKind="lab"; $("f-file-input").click(); });
+  $("f-file-input").addEventListener("change",onPendingFilePicked);
+  $("btn-wa-remind").addEventListener("click",waRemind);
+  $("btn-wa-send").addEventListener("click",waSend);
+  $("btn-del-patient").addEventListener("click",deletePatient);
+  $("xviewer-close").addEventListener("click",()=>$("xviewer").classList.add("hidden"));
+  $("xviewer-del").addEventListener("click",async()=>{
+    if(viewingXray && confirm("تمسح الصورة دي؟")){
+      await dbDel("xrays",viewingXray.id);
+      viewingXray=null;
+      $("xviewer").classList.add("hidden");
+      await reloadAll(); renderFileGrids();
+    }
+  });
+
+  // Settings
+  $("wa-template").value=waTemplate();
+  $("btn-save-template").addEventListener("click",()=>{
+    localStorage.setItem(WA_TPL_KEY,$("wa-template").value.trim()||WA_TPL_DEFAULT);
+    alert("اتحفظ ✅");
+  });
+  $("btn-export").addEventListener("click",exportBackup);
+  $("btn-export-enc").addEventListener("click",()=>$("enc-export-form").classList.toggle("hidden"));
+  $("btn-export-enc-go").addEventListener("click",exportEncrypted);
+  $("btn-export-enc-cancel").addEventListener("click",()=>{ $("enc-export-form").classList.add("hidden"); $("enc-pass1").value=$("enc-pass2").value=""; });
+  $("btn-import-enc-go").addEventListener("click",importEncryptedGo);
+  $("btn-import-enc-cancel").addEventListener("click",()=>{ pendingEnc=null; $("enc-import-form").classList.add("hidden"); $("enc-pass-in").value=""; });
+  $("btn-import").addEventListener("click",()=>$("import-input").click());
+  $("import-input").addEventListener("change",importBackup);
+  $("btn-change-pin").addEventListener("click",()=>showLock("change1"));
+  $("btn-wipe").addEventListener("click",()=>{
+    if(confirm("ده هيمسح كل العملاء والجلسات والحسابات والصور نهائيًا من الموبايل ده. متأكد؟")) wipeAll();
+  });
+
+  // Auto-lock after 3 minutes hidden
+  let hiddenAt=null;
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden){ hiddenAt=Date.now(); }
+    else if(hiddenAt && Date.now()-hiddenAt>3*60*1000 && localStorage.getItem(PIN_KEY)){ showLock("unlock"); }
+    hiddenAt = document.hidden ? hiddenAt : null;
+  });
+}
+
+/* ---------- Boot ---------- */
+(async function(){
+  try{ await dbOpen(); await reloadAll(); }
+  catch(e){ document.body.innerHTML='<div class="empty" style="padding-top:80px;"><span class="ic">⚠️</span>المتصفح ده مش بيسمح بحفظ البيانات. جرّب تفتح التطبيق من سفاري أو كروم.</div>'; return; }
+  init();
+  showLock(localStorage.getItem(PIN_KEY) ? "unlock" : "setup1");
+})();
+</script>
+<script>
+/* تشغيل التطبيق من غير نت */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
+
