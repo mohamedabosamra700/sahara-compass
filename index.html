@@ -521,21 +521,6 @@ label.fld input:focus,label.fld select:focus,label.fld textarea:focus{outline:no
       </div>
       <div class="money-row"><span>المدفوع فعليًا</span><span class="v green" id="m-paid">0 ج</span></div>
       <div class="rep-note" id="m-price-note">سعر الزيارة مش دفعة. الإيرادات بتتحسب من الدفعات المسجلة فقط.</div>
-      <button class="btn secondary small" id="btn-add-payment">＋ سجّل دفعة</button>
-      <div id="pay-form" class="hidden" style="margin-top:12px;">
-        <div class="btnrow" style="gap:10px;">
-          <label class="fld" style="flex:1;">المبلغ (ج)
-            <input id="pay-amount" type="number" inputmode="decimal" min="0">
-          </label>
-          <label class="fld" style="flex:1;">التاريخ
-            <input id="pay-date" type="date">
-          </label>
-        </div>
-        <label class="fld">ملاحظة
-          <input id="pay-note" type="text" placeholder="اختياري">
-        </label>
-        <button class="btn" id="btn-save-payment">حفظ الدفعة</button>
-      </div>
       <div id="payments-history"></div>
     </div>
 
@@ -1214,7 +1199,7 @@ function renderPatient(){
   $("m-visit-price").textContent=validVisitPrice(p.visitPrice)?fmtMoney(p.visitPrice):"غير محدد";
   $("m-legacy-package").classList.toggle("hidden",p.billingMode==="per-visit");
   $("m-price-note").textContent=p.billingMode==="per-visit"
-    ?"سعر الزيارة مش دفعة ولا إجمالي مستحق. سعر كل جلسة بتسجّلها بيتضاف تلقائيًا كدفعة في سجل الدفعات، وتقدر تسجّل أي دفعة تانية من «سجّل دفعة»."
+    ?"سعر الزيارة مش دفعة ولا إجمالي مستحق. سعر كل جلسة بتسجّلها بيتضاف تلقائيًا كدفعة في سجل الدفعات."
     :"حساب الباكدج القديم محفوظ زي ما هو. سعر الزيارة منفصل؛ مفيش أسعار اتضافت للزيارات القديمة. الجلسات الجديدة اللي بتسجّلها بسعرها بتتضاف تلقائيًا كدفعات.";
   const totalPrice=Number(p.packagePrice)||0;
   $("m-total").textContent=fmtMoney(totalPrice);
@@ -1225,7 +1210,6 @@ function renderPatient(){
     ? '<div class="section-title" style="padding:10px 0 2px;">الدفعات</div>'+
       ps.map(x=>`<div class="money-row"><span>${esc(fmtDate(x.date))}${x.note?" — "+esc(x.note):""}</span><span class="v green">${fmtMoney(x.amount)}</span></div>`).join("")
     : "";
-  $("pay-form").classList.add("hidden");
 
   const sl=$("sessions-list"); sl.innerHTML="";
   for(const s of ss){
@@ -1299,15 +1283,6 @@ async function saveSession(){
     await reloadAll(); renderPatient();
   }catch(e){ alert("مش قدرت أحفظ الجلسة ودفعتها، حاول تاني"); }
   finally{ savingSession=false; }
-}
-
-/* ---------- Payments ---------- */
-async function savePayment(){
-  const amt=Number($("pay-amount").value);
-  if(!amt||amt<=0){ alert("اكتب مبلغ صحيح"); return; }
-  await dbAdd("payments",{patientId:currentPatientId,amount:amt,date:$("pay-date").value||todayStr(),note:$("pay-note").value.trim()});
-  $("pay-amount").value=""; $("pay-note").value="";
-  await reloadAll(); renderPatient();
 }
 
 /* ---------- X-rays & lab results ---------- */
@@ -1554,11 +1529,6 @@ function init(){
   $("btn-add-session").addEventListener("click",()=>openSessionForm());
   $("btn-cancel-session").addEventListener("click",()=>{editingSessionId=null;$("session-form").classList.add("hidden");});
   $("btn-save-session").addEventListener("click",saveSession);
-  $("btn-add-payment").addEventListener("click",()=>{
-    $("pay-form").classList.toggle("hidden");
-    $("pay-date").value=todayStr();
-  });
-  $("btn-save-payment").addEventListener("click",savePayment);
   $("btn-add-xray").addEventListener("click",()=>{ uploadKind="xray"; $("xray-input").click(); });
   $("btn-add-lab").addEventListener("click",()=>{ uploadKind="lab"; $("lab-input").click(); });
   $("xray-input").addEventListener("change",onFilePicked);
